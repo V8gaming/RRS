@@ -1,5 +1,4 @@
 use std::{io, thread, time::Duration, vec};
-use ARCFM::TableVec;
 use tui::{
     backend::CrosstermBackend,
     widgets::{Block, Borders, Table},
@@ -50,7 +49,7 @@ fn main() -> Result<(), io::Error>{
             let block = Block::default().borders(Borders::ALL);
             // render a 5x5 grid of fuel rods with a table
 
-            let table = TableVec::new(
+            let table = Table::new(
                 vec![
                 //add blocks around each cell
                 fuel_rod_table_row(1, 5),
@@ -62,7 +61,7 @@ fn main() -> Result<(), io::Error>{
                 ],
 
             ).block(Block::default().title("Fuel Rods").borders(Borders::ALL)).widths(
-                vec![
+                &[
                     Constraint::Percentage(20),
                     Constraint::Percentage(20),
                     Constraint::Percentage(20),

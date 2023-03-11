@@ -1,4 +1,4 @@
-use std::{io, thread, time::Duration, vec};
+use std::{io::{self, Write}, thread, time::Duration, vec};
 use tui::{
     backend::CrosstermBackend,
     widgets::{Block, Borders, Table},
@@ -71,8 +71,11 @@ fn main() -> Result<(), io::Error>{
             ).style(
                 tui::style::Style::default().fg(tui::style::Color::Yellow),
             );
+            
+            block.inner(f.size());
+
             //fuel_rod_table(5, 5);
-            f.render_widget(fuel_rod_table(5, 5), chunks[0]);
+            f.render_widget(block, chunks[0]);
             f.render_widget(table, chunks[1]);
  
             

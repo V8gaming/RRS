@@ -1,3 +1,4 @@
+use std::default;
 use std::io::{self, Stdout};
 
 use tui::Frame;
@@ -10,7 +11,7 @@ use tui::widgets::{Block, Borders, Cell, Widget, TableState, StatefulWidget, Row
 use tui::text::{Text, Span, Spans};
 use unicode_width::UnicodeWidthStr;
 
-#[derive(Clone,Copy)]
+#[derive(Clone,Copy, Debug)]
 pub struct ARCFMMENU {
     pull_rods: bool,
     insert_rods: bool,
@@ -20,13 +21,27 @@ pub struct ARCFMMENU {
     reactivity: f32,
     centre_core_only: bool,
 }
+#[derive(Clone, Debug)]
+pub struct MainStruct {
+    pub menu: ARCFMMENU,
+    pub fuel_rods: Vec<Vec<FuelRod>>,
+}
+
+impl Default for MainStruct {
+    fn default() -> Self {
+        Self {
+            menu: ARCFMMENU::default(),
+            fuel_rods: vec![vec![FuelRod::default(); 5]; 5],
+        }
+    }
+}
 
 #[derive(Clone, Copy, Debug)]
 pub struct FuelRod {
     absorber_rod_position: f32,
     fuel_temperature: f32,
     thermal_power_output: f32,
-    insert_rod: bool,
+    pub insert_rod: bool,
 }
 
 
@@ -49,7 +64,7 @@ impl Default for FuelRod {
             absorber_rod_position: 0.0,
             fuel_temperature: 0.0,
             thermal_power_output: 0.0,
-            insert_rod: false,
+            insert_rod: true,
         }
     }
 }
@@ -67,7 +82,7 @@ pub fn fuel_rod_table_row(starting_number: i32, width: i32) -> Row<'static> {
     
 }
 
-pub fn fuel_rod_table(width: i32, height: i32, layout: Rect, frame: &mut Frame<CrosstermBackend<Stdout>>) {
+pub fn fuel_rod_table(width: i32, height: i32, layout: Rect, frame: &mut Frame<CrosstermBackend<Stdout>>, fuel_rods: &Vec<Vec<FuelRod>>) {
     let column_constraints = std::iter::repeat(Constraint::Percentage((100 / width) as u16))
         .take((width) as usize)
         .collect::<Vec<_>>();
@@ -81,7 +96,7 @@ pub fn fuel_rod_table(width: i32, height: i32, layout: Rect, frame: &mut Frame<C
         .margin(1)
         .split(layout);
 
-    let fuel_rods = vec![vec![FuelRod::default(); 5]; 5];
+    
     for i in 0..height {
         let column_rects = Layout::default()
             .direction(Direction::Horizontal)

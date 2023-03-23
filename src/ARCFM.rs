@@ -1,167 +1,20 @@
 use std::io::Stdout;
 
-use tui::Frame;
 use tui::backend::CrosstermBackend;
-use tui::layout::{Constraint, Layout, Rect, Direction};
-use tui::style::{Style, Color};
+use tui::layout::{Constraint, Direction, Layout, Rect};
+use tui::style::{Color, Style};
+use tui::text::Text;
 use tui::widgets::{Block, Borders, Paragraph};
-use tui::text::{Text, Spans};
-use rayon::prelude::*;
+use tui::Frame;
+use crate::structs::MainStruct;
 
-pub struct FuelRodData {
-    FuelPellet: FuelPellet,
-    Cladding: Cladding,
-}
-pub struct FuelPellet {
-    U_composition: UComposition,
-    OM: f32,
-    density: f32,
-    Diameter: f32,
-    Stack_length: f32,
-}
-
-pub struct UComposition {
-    U235_composition: f32,
-    U238_composition: f32,
-}
-pub struct Cladding {
-    material: String,
-    inner_diameter: f32,
-    thickness: f32,
-}
-impl Default for Cladding {
-    fn default() -> Self {
-        Self {
-            material: "Zircaloy".to_string(),
-            inner_diameter: 7.62,
-            thickness: 0.127,
-        }
-    }
-}
-
-impl Default for UComposition {
-    fn default() -> Self {
-        Self {
-            U235_composition: 0.035,
-            U238_composition: 0.965,
-        }
-    }
-}
-impl Default for FuelPellet {
-    fn default() -> Self {
-        Self {
-            U_composition: UComposition::default(),
-            OM: 3.0,
-            density: 10.7,
-            Diameter: 7.62,
-            Stack_length: 150.0,
-        }
-    }
-}
-pub struct PhysicalVariables {
-    pub fuel_rod_data: FuelRodData,
-    pub distance_between_c_and_f_rods: f32,
-}
-impl Default for PhysicalVariables {
-    fn default() -> Self {
-        Self {
-            fuel_rod_data: FuelRodData {
-                FuelPellet: FuelPellet::default(),
-                Cladding: Cladding::default(),
-            },
-            distance_between_c_and_f_rods: 1.25,
-        }
-    }
-}
-
-
-#[derive(Clone,Copy, Debug)]
-pub struct ARCFMMENU {
-    pub width: u16,
-    pub height: u16,
-    hold_rods: bool,
-    // slow, medium, fast
-    pub speed_setpoint: f32,
-    pub neutron_flux: f32,
-}
-#[derive(Clone, Debug)]
-pub struct MainStruct {
-    pub menu: ARCFMMENU,
-    pub absorber_rods: Vec<Vec<FuelRod>>,
-    pub data: Data
-}
-#[derive(Clone, Debug)]
-pub struct Data {
-    pub graphs: Vec<Vec<(f64,f64)>>,
-    pub reactivity: f32,
-    pub neutron_flux: f32,
-    pub neutron_rate: f32,
-    pub log: Vec<String>,
-}
-impl Default for Data {
-    fn default() -> Self {
-        Self {
-            graphs: vec![vec![(0.0,0.0); 2];5],
-            reactivity: 0.0,
-            neutron_flux: 0.0,
-            neutron_rate: 0.0,
-            log: Vec::new(),
-        }
-    }
-}
-
-impl Default for MainStruct {
-    fn default() -> Self {
-        Self {
-            menu: ARCFMMENU::default(),
-            absorber_rods: vec![vec![FuelRod::default(); 5]; 5],
-            data: Data::default(),
-
-        }
-    }
-}
-
-#[derive(Clone, Copy, Debug)]
-pub struct FuelRod {
-    pub absorber_rod_position: f32,
-    pub fuel_temperature: f32,
-    pub thermal_power_output: f32,
-    pub insert_rod: bool,
-    pub set_point: f32,
-    pub reactivity: f32,
-    pub neutron_rate: f32,
-}
-
-
-impl Default for ARCFMMENU {
-    fn default() -> Self {
-        Self {
-            hold_rods: false,
-            speed_setpoint: 0.1,
-            width: 5,
-            height: 5,
-            neutron_flux: 0.0,
-
-        }
-    }
-}
-
-impl Default for FuelRod {
-    fn default() -> Self {
-        Self {
-            absorber_rod_position: 0.0,
-            fuel_temperature: 0.0,
-            thermal_power_output: 0.0,
-            insert_rod: true,
-            set_point: 20.0,
-            reactivity: 0.0,
-            neutron_rate: 0.0,
-        }
-    }
-}
-
-
-pub fn fuel_rod_table(width: i32, height: i32, layout: Rect, frame: &mut Frame<CrosstermBackend<Stdout>>, fuel_rods: &Vec<Vec<FuelRod>>) {
+pub fn fuel_rod_table(
+    width: i32,
+    height: i32,
+    layout: Rect,
+    frame: &mut Frame<CrosstermBackend<Stdout>>,
+    mainstruct: &mut MainStruct,
+) {
     let column_constraints = std::iter::repeat(Constraint::Percentage((100 / width) as u16))
         .take((width) as usize)
         .collect::<Vec<_>>();
@@ -172,23 +25,119 @@ pub fn fuel_rod_table(width: i32, height: i32, layout: Rect, frame: &mut Frame<C
     let row_rects = Layout::default()
         .direction(Direction::Vertical)
         .constraints(row_constraints)
-        .margin(1)
+        .margin(2)
         .split(layout);
 
-    
+    let color_gradient = colorgrad::CustomGradient::new()
+        .html_colors(&[
+            "rgba(0,0,0,1)",
+            "rgba(255,192,0,1)",
+            "rgba(255,126,0,1)",
+            "rgba(255,67,0,1)",
+            "rgba(255,0,0,1)",
+        ])
+        .domain(&[0.0, 100.0])
+        .build()
+        .unwrap();
+
     for i in 0..height {
         let column_rects = Layout::default()
             .direction(Direction::Horizontal)
             .constraints(column_constraints.clone())
             .split(row_rects[i as usize]);
         for j in 0..width {
-            let text = Text::from(format!("{}:{:.1}% ,{}, {}", i*width+j+1,fuel_rods[i as usize][j as usize].absorber_rod_position, fuel_rods[i as usize][j as usize].fuel_temperature, fuel_rods[i as usize][j as usize].thermal_power_output));
-            let cell_text = Paragraph::new(text)
-                .block(Block::default().borders(Borders::NONE)
-                .style(Style::default().bg(Color::Black)));
+            if i > 0 {
+                mainstruct.absorber_rods[i as usize][j as usize].neighbors.1[0] = true;
+                mainstruct.absorber_rods[i as usize][j as usize].neighbors.0[0] =
+                    ((i - 1) as u16, j as u16);
+            }
+            if i < height - 1 {
+                mainstruct.absorber_rods[i as usize][j as usize].neighbors.1[1] = true;
+                mainstruct.absorber_rods[i as usize][j as usize].neighbors.0[1] =
+                    ((i + 1) as u16, j as u16);
+            }
+
+            if j > 0 {
+                mainstruct.absorber_rods[i as usize][j as usize].neighbors.1[2] = true;
+                mainstruct.absorber_rods[i as usize][j as usize].neighbors.0[2] =
+                    (i as u16, (j - 1) as u16);
+            }
+            if j < width - 1 {
+                mainstruct.absorber_rods[i as usize][j as usize].neighbors.1[3] = true;
+                mainstruct.absorber_rods[i as usize][j as usize].neighbors.0[3] =
+                    (i as u16, (j + 1) as u16);
+            }
+            let MIN = 0.0;
+            let MAX = 100.0;
+            // sum of neighbor temperatures times by 0.05
+            let mut neighbor_temp_sum = 0.0;
+            //mainstruct.data.log.push(format!("{}, {}",i+1,j+1));
+            let mut adjusted_height = height;
+            let mut adjusted_width = width;
+            if height % 2 != 0 {
+                adjusted_height = height + 1;
+            }
+            if width % 2 != 0 {
+                adjusted_width = width + 1;
+            }
+            let center = (adjusted_height / 2, adjusted_width / 2);
+            //mainstruct.data.log.push(format!("{}, {}",center.0,center.1));
+            for k in 0..mainstruct.absorber_rods[i as usize][j as usize]
+                .neighbors
+                .1
+                .len()
+            {
+                if mainstruct.absorber_rods[i as usize][j as usize].neighbors.1[k] {
+                    let pos = mainstruct.absorber_rods[i as usize][j as usize].neighbors.0[0];
+                    let abs_rod_pos = mainstruct.absorber_rods[pos.0 as usize][pos.1 as usize]
+                        .absorber_rod_position;
+                    let fuel_temp =
+                        ((MAX - MIN) * (1.0 - abs_rod_pos as f64 / 100.0) + MIN).round();
+                    // for every row, column closer to the center, the temperature is 5% higher
+                    //let distance = ((pos.0 - center.0 as u16).pow(2) as f64 + (pos.1 - center.1 as u16).pow(2) as f64).sqrt();
+                    let distance: f64 = ((i as f64 + 1.0 - center.0 as f64).abs().powf(2.0)
+                        + (j as f64 + 1.0 - center.1 as f64).abs().powf(2.0))
+                    .sqrt();
+                    //mainstruct.data.log.push(format!("{:?}", distance));
+                    neighbor_temp_sum += fuel_temp * -0.05 * distance;
+
+                    //neighbor_temp_sum += fuel_temp;
+                }
+            }
+
+            //mainstruct.data.log.push(format!("{:?}, {:?}", mainstruct.absorber_rods[0][0].neighbors, mainstruct.absorber_rods[1][1].neighbors));
+
+            let temperature = ((MAX - MIN)
+                * (1.0
+                    - mainstruct.absorber_rods[i as usize][j as usize].fuel_temperature as f64
+                        / 600.0)
+                + MIN
+                + (neighbor_temp_sum * 0.05))
+                .round();
+            let rgba = color_gradient.at(100.0 - temperature).to_rgba8();
+            let temperature_color;
+            if temperature == 100.0 {
+                temperature_color = Color::Reset;
+            } else {
+                temperature_color = Color::Rgb(rgba[0], rgba[1], rgba[2]);
+            }
+
+            //mainstruct.data.log.push(format!("Temprature: {}, rgba: {:?}", 100.0-temperature, rgba));
+
+            //let text = Text::from(format!("{}:{:.1}%", i*width+j+1,mainstruct.absorber_rods[i as usize][j as usize].absorber_rod_position));
+            let text = Text::from(format!(
+                "{}:{:.1}°C",
+                i * width + j + 1,
+                mainstruct.absorber_rods[i as usize][j as usize].fuel_temperature
+                    + (neighbor_temp_sum as f32 * 0.05)
+            ));
+
+            let cell_text = Paragraph::new(text).block(
+                Block::default()
+                    .borders(Borders::NONE)
+                    .style(Style::default().bg(temperature_color)),
+            );
             frame.render_widget(cell_text, column_rects[j as usize]);
         }
     }
-
-}   
-
+}

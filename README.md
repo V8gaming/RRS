@@ -1,4 +1,4 @@
-[![BuildNightly](https://github.com/V8gaming/RBMK-1000/actions/workflows/rust.yml/badge.svg)](https://github.com/V8gaming/RBMK-1000/actions/workflows/rust.yml)
+[![BuildNightly](https://github.com/V8gaming/RBMK-1000/actions/workflows/rust.yml/badge.svg?branch=master)](https://github.com/V8gaming/RBMK-1000/actions/workflows/rust.yml)
 # RMBK-1000 Simulator
 This a a recreation of the RBMK-1000 reactor from Chernobyl: the legacy continues.
 

@@ -2,7 +2,7 @@ use std::fmt::format;
 
 use rayon::prelude::*;
 
-use crate::{structs::MainStruct, main};
+use crate::{main, structs::MainStruct};
 use rand::seq::SliceRandom;
 
 pub fn interpolate_position(mainstruct: &mut MainStruct) {
@@ -73,8 +73,8 @@ pub fn neutron_rate(mainstruct: &mut MainStruct) {
         row.par_iter_mut().for_each(|rod| {
             const MAX: f32 = 15.0; // 100% neutron flux rate
             const MIN: f32 = -15.0; // 0% neutron flux rate
-            rod.neutron_rate = (MAX - MIN) * (1.0 - rod.absorber_rod_position as f32 / 100.0) + MIN as f32;
-            
+            rod.neutron_rate =
+                (MAX - MIN) * (1.0 - rod.absorber_rod_position as f32 / 100.0) + MIN as f32;
         });
     });
     //mainstruct.data.log.push(format!("Neutron rate: {}", mainstruct.data.neutron_rate));
@@ -128,9 +128,8 @@ pub fn fuel_temperature(mainstruct: &mut MainStruct) {
         .absorber_rods
         .par_iter()
         .map(|row| {
-            row.par_iter()
-                .map(|rod| rod.fuel_temperature)
-                .sum::<f32>() / mainstruct.core.width as f32
+            row.par_iter().map(|rod| rod.fuel_temperature).sum::<f32>()
+                / mainstruct.core.width as f32
         })
         .sum::<f32>()
         / mainstruct.core.height as f32;
@@ -138,7 +137,8 @@ pub fn fuel_temperature(mainstruct: &mut MainStruct) {
     const TH_MAX: f32 = 110.0;
     const TH_MIN: f32 = 0.0;
     // 110% is FP
-    let normalized_thermal_power = (TH_MAX - TH_MIN) * (thermal_power as f32 / 600.0) + TH_MIN as f32;
+    let normalized_thermal_power =
+        (TH_MAX - TH_MIN) * (thermal_power as f32 / 600.0) + TH_MIN as f32;
     //mainstruct.data.log.push(format!("Thermal power: {}", normalized_thermal_power));
     mainstruct.core.thermal_power = normalized_thermal_power;
 
@@ -155,6 +155,4 @@ pub fn turbine(mainstruct: &mut MainStruct) {
     } else {
         mainstruct.turbine.turbine_speed = mainstruct.turbine.setpoint_speed;
     }
-    
-    
 }

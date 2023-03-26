@@ -1,0 +1,12 @@
+stroke: rgb(0, 0, 0); stroke-width: 21px; fill: none;
+stroke: rgb(0, 0, 0); fill: none; stroke-width: 9px;
+stroke: rgb(0, 0, 0); stroke-width: 21px; fill: none;
+stroke: rgb(0, 0, 0); fill: none; stroke-width: 9px;
+stroke: rgb(0, 0, 0); stroke-width: 21px; fill: none;
+stroke: rgb(0, 0, 0); fill: none; stroke-width: 9px;
+stroke: rgb(0, 0, 0); stroke-width: 21px; fill: none;
+stroke: rgb(0, 0, 0); fill: none; stroke-width: 9px;
+stroke: rgb(0, 0, 0); stroke-width: 21px; fill: none;
+stroke: rgb(0, 0, 0); fill: none; stroke-width: 9px;
+stroke: rgb(0, 0, 0); stroke-width: 21px; fill: none;
+stroke: rgb(0, 0, 0); fill: none; stroke-width: 9px;

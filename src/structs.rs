@@ -80,7 +80,6 @@ pub struct Core {
     pub rate_of_change: f32,
     pub drain_valve: f32,
     pub drain_setpoint: f32,
-
 }
 impl Default for Core {
     fn default() -> Self {
@@ -94,7 +93,6 @@ impl Default for Core {
             rate_of_change: 0.0,
             drain_valve: 0.0,
             drain_setpoint: 0.0,
-            
         }
     }
 }
@@ -116,7 +114,6 @@ pub struct Turbine {
     pub turning_gear: bool,
     pub setpoint_speed: f32,
     pub pressure_setpoint: f32,
-
 }
 impl Default for Turbine {
     fn default() -> Self {
@@ -129,11 +126,9 @@ impl Default for Turbine {
             turning_gear: false,
             setpoint_speed: 0.0,
             pressure_setpoint: 0.0,
-
         }
     }
 }
-
 
 #[derive(Clone, Debug)]
 pub struct MainStruct {
@@ -170,7 +165,7 @@ impl Default for Data {
                 vec![(-15.0, 0.0); 2],
                 vec![(0.0, 0.0); 2],
                 vec![(0.0, 0.0); 2],
-                ],
+            ],
             reactivity: 0.0,
             neutron_flux: 0.0,
             neutron_rate: -15.0,
@@ -179,8 +174,6 @@ impl Default for Data {
         }
     }
 }
-
-
 
 #[derive(Clone, Copy, Debug)]
 pub struct FuelRod {
@@ -225,7 +218,6 @@ pub struct Steam {
     pub feedwater_flow_rate: f32,
     pub feedwater_temperature: f32,
     pub thermodynamic_cycle: String,
-
 }
 impl Default for Steam {
     fn default() -> Self {
@@ -239,5 +231,3 @@ impl Default for Steam {
         }
     }
 }
-
-

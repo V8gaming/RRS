@@ -1,12 +1,12 @@
 use std::io::Stdout;
 
+use crate::structs::MainStruct;
 use tui::backend::CrosstermBackend;
 use tui::layout::{Constraint, Direction, Layout, Rect};
 use tui::style::{Color, Style};
 use tui::text::Text;
 use tui::widgets::{Block, Borders, Paragraph};
 use tui::Frame;
-use crate::structs::MainStruct;
 
 pub fn fuel_rod_table(
     width: i32,

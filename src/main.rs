@@ -1,10 +1,10 @@
+use crate::steam::steam;
 use crossterm::{
     event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
 use interpolate::{fuel_temperature, graphline, neutron_flux, neutron_rate};
-use crate::steam::steam;
 use std::{io, sync::mpsc::channel, thread, time::Duration, vec};
 use tui::{
     backend::CrosstermBackend,
@@ -16,19 +16,21 @@ use tui::{
 };
 
 // import local modules
-use crate::structs::MainStruct;
 use crate::commands::send_command;
-use crate::interpolate::interpolate_position;
 use crate::draw::draw;
+use crate::interpolate::interpolate_position;
+use crate::structs::MainStruct;
 
 #[allow(non_snake_case)]
 mod ARCFM;
 #[warn(non_snake_case)]
 mod commands;
-mod interpolate;
-mod structs;
 mod draw;
+mod interpolate;
 mod steam;
+mod structs;
+mod svg;
+
 fn main() -> Result<(), io::Error> {
     // setup terminal
     enable_raw_mode()?;
@@ -106,7 +108,7 @@ fn main() -> Result<(), io::Error> {
                 .marker(symbols::Marker::Braille)
                 .graph_type(GraphType::Line)
                 .style(Style::default().fg(Color::Green))
-                .data(&[(0.0,0.0)]),
+                .data(&[(0.0, 0.0)]),
         ];
 
         let graph = Chart::new(datasets)
@@ -249,7 +251,7 @@ pub fn read_input(
                             } else {
                                 mainstruct.data.left_tab_index += 1;
                             }
-                            
+
                             return Ok(());
                         }
                         _ => return Ok(()),
@@ -262,4 +264,3 @@ pub fn read_input(
         return Ok(());
     }
 }
-

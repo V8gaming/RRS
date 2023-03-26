@@ -187,7 +187,6 @@ pub fn send_command(command: &str, mainstruct: &mut MainStruct, height: u16) {
                     cell.set_point = cell.absorber_rod_position;
                 })
             });
-
         }
         [13] => {
             let re = Regex::new(r"drain valve (\d+)").unwrap();

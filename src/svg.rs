@@ -50,6 +50,100 @@ pub fn render_svg(
                     }
                     objects.push(variables);
                 }
+                if name.local_name == "line" {
+                    let len = hash_map.keys().len();
+                    let mut variables = (
+                        "".to_string(),
+                        "".to_string(),
+                        "".to_string(),
+                        "".to_string(),
+                        "".to_string(),
+                    );  
+                    for i in &attributes {
+                        match i.name.local_name.as_str() {
+                            "x1" => {
+                                variables.0 = i.value.to_owned();
+                            }
+                            "y1" => {
+                                variables.1 = i.value.to_owned();
+                            }
+                            "x2" => {
+                                variables.2 = i.value.to_owned();
+                            }
+                            "y2" => {
+                                variables.3 = i.value.to_owned();
+                            }
+                            "style" => {
+                                variables.4 = i.value.to_owned();
+                            }
+                            _ => {}
+                        }
+                    }
+                    hash_map.insert(
+                        len + 1,
+                        (
+                            vec![
+                                (
+                                    variables.0.parse::<f64>().unwrap() / (view_box[0] /100.0),
+                                    100.0 - variables.1.parse::<f64>().unwrap() / (view_box[1] /100.0),
+                                ),
+                                (
+                                    variables.2.parse::<f64>().unwrap() / (view_box[0] /100.0),
+                                    100.0 - variables.3.parse::<f64>().unwrap() / (view_box[1] /100.0),
+                                ),
+                            ],
+                            variables.4,
+                        ),
+                    );
+                }
+                if name.local_name == "rect" {
+                    let len = hash_map.keys().len();
+                    let mut variables = (
+                        "".to_string(),
+                        "".to_string(),
+                        "".to_string(),
+                        "".to_string(),
+                        "".to_string(),
+                    );
+                    for i in &attributes {
+                        match i.name.local_name.as_str() {
+                            "x" => {
+                                variables.0 = i.value.to_owned();
+                            }
+                            "y" => {
+                                variables.1 = i.value.to_owned();
+                            }
+                            "width" => {
+                                variables.2 = i.value.to_owned();
+                            }
+                            "height" => {
+                                variables.3 = i.value.to_owned();
+                            }
+                            "style" => {
+                                variables.4 = i.value.to_owned();
+                            }
+                            _ => {}
+                        }
+                    }
+                    let x = variables.0.parse::<f64>().unwrap() / (view_box[0] /100.0);
+                    let y = variables.1.parse::<f64>().unwrap() / (view_box[1] /100.0);
+                    let width = variables.2.parse::<f64>().unwrap() / (view_box[0] /100.0);
+                    let height = variables.3.parse::<f64>().unwrap() / (view_box[1] /100.0);
+
+                    hash_map.insert(
+                        len + 1,
+                        (
+                            vec![
+                                (x, 100.0 - y),
+                                (x + width, 100.0 - y),
+                                (x + width, 100.0 - (y + height)),
+                                (x, 100.0 - (y + height)),
+                                (x, 100.0 - y),
+                            ],
+                            variables.4,
+                        ),
+                    );
+                }
             }
             _ => {}
         }
@@ -112,11 +206,11 @@ fn draw_path(
                         x = transformed_points.0;
                         y = transformed_points.1;
                     }
-                    start = (x, y);
+                    start = (x, 100.0-y);
                     points.push(start);
                     prev_point = start;
                     prev_command = command;
-                    prev_match = format!("{}, {}, {}", command, x, y);
+                    prev_match = format!("{}, {}, {}", command, x, 100.0-y);
                 }
                 "L" => {
                     let x = data[1].parse::<f64>().unwrap();
@@ -130,10 +224,10 @@ fn draw_path(
                         x = transformed_points.0;
                         y = transformed_points.1;
                     }
-                    points.push((x, y));
-                    prev_point = (x, y);
+                    points.push((x, 100.0-y));
+                    prev_point = (x, 100.0-y);
                     prev_command = command;
-                    prev_match = format!("{}, {}, {}", command, x, y);
+                    prev_match = format!("{}, {}, {}", command, x, 100.0-y);
                 }
                 "Q" => {
                     // Quadratic Bezier Curve

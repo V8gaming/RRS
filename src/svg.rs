@@ -294,7 +294,8 @@ fn draw_path(
                 "S" => {
                     let mut control_point_1_x = 0.0;
                     let mut control_point_1_y = 0.0;
-                    if prev_command == "S" || prev_command == "C" {
+                    let whitelist = vec!["C", "S"];
+                    if whitelist.contains(&prev_command){
                         // first control point is reflection of second control point on the previous command relative to the current point
                         let data = prev_match.split(", ").collect::<Vec<&str>>();
                         mainstruct.data.log.push(format!("data: {:?}", data));
@@ -332,7 +333,8 @@ fn draw_path(
                     // Smooth Quadratic Bezier Curve
                     let mut control_point_x = 0.0;
                     let mut control_point_y = 0.0;
-                    if prev_command == "T" || prev_command == "Q" {
+                    let whitelist = vec!["Q", "T"];
+                    if whitelist.contains(&prev_command) {
                         // first control point is reflection of second control point on the previous command relative to the current point
                         let data = prev_match.split(", ").collect::<Vec<&str>>();
                         mainstruct.data.log.push(format!("data: {:?}", data));

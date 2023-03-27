@@ -51,3 +51,42 @@ This a a recreation of the RBMK-1000 reactor from Chernobyl: the legacy continue
 | 5  | 600.000             |265.198     | 334.802                     | 12.9698
 | 6  | 600.000             |276.680   | 323.320                       | 15.5886
 | 7  | 600.000             |286.803 | 313.197                         | 18.2339
+
+
+# SVG Checklist
+__NEEDS RATIO FIXING & RELATIVE PATHS__
+- [x] Line
+- [x] Rect
+- [ ] Circle
+- [ ] Ellipse
+- [ ] Image (use jpeg compression (DCT) to render 16 colors)
+- [ ] Iframe (will be attemped last)
+- [ ] Text
+- [ ] SVG
+- [ ] Polygon
+- [ ] Polyline
+- [ ] textPath
+- [ ] __Path__
+  - [x] M
+  - [x] L
+  - [x] Q, needs more testing
+  - [X] C, needs more testing
+  - [X] H
+  - [X] V
+  - [ ] S, needs complete testing
+  - [ ] T, needs complete testing
+  - [ ] A, Incomplete
+- [ ] __Transformations, needs complete testing__
+  - [X] Translate
+  - [X] Scale
+  - [X] Rotate
+  - [X] Skew
+  - [ ] Matrix
+- [ ] __Style__
+  - [ ] Fill(bg) Color
+  - [ ] Stroke
+    - [x] (fg) Color
+    - [ ] (fg) size
+    - [ ] linecap
+    - [ ] linejoin
+

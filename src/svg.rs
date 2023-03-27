@@ -504,9 +504,9 @@ fn elliptical_arc(
     scales: (f64, f64),
 ) -> (f64, f64) {
     let x1 = start.0;
-    let y1 = start.1;
+    let y1 = 100.0 - start.1;
     let x2 = end.0;
-    let y2 = end.1;
+    let y2 = 100.0 - end.1;
     let rx = radii.0;
     let ry = radii.1;
     let phi = x_axis_rotation;

@@ -31,15 +31,29 @@ pub fn interpolate_position(mainstruct: &mut MainStruct) {
 pub fn graphline(mainstruct: &mut MainStruct) {
     //println!("In graph line method");
     //mainstruct.data.log.push(format!("Graph newest: {:?}, pos: {}", mainstruct.data.graphs[3][0], mainstruct.absorber_rods[0][0].absorber_rod_position));
-
+    while mainstruct.data.graphs[0].len() > 30 {
+        mainstruct.data.graphs[0].pop();
+    }
+    while  mainstruct.data.graphs[1].len() > 30{
+        mainstruct.data.graphs[1].pop();
+    }
     while mainstruct.data.graphs[2].len() > 30 {
         mainstruct.data.graphs[2].pop();
     }
     while mainstruct.data.graphs[3].len() > 30 {
         mainstruct.data.graphs[3].pop();
     }
-    while mainstruct.data.graphs[0].len() > 30 {
-        mainstruct.data.graphs[0].pop();
+    for i in 0..mainstruct.data.graphs[0].len() {
+        let j = mainstruct.data.graphs[0][i];
+
+        //graph_data[i] = (j.0, j.1+1.0);
+        mainstruct.data.graphs[0][i] = (j.0, j.1 + 1.0);
+    }
+    for i in 0..mainstruct.data.graphs[1].len() {
+        let j = mainstruct.data.graphs[1][i];
+
+        //graph_data[i] = (j.0, j.1+1.0);
+        mainstruct.data.graphs[1][i] = (j.0, j.1 + 1.0);
     }
 
     for i in 0..mainstruct.data.graphs[2].len() {
@@ -54,12 +68,7 @@ pub fn graphline(mainstruct: &mut MainStruct) {
         //graph_data[i] = (j.0, j.1+1.0);
         mainstruct.data.graphs[3][i] = (j.0, j.1 + 1.0);
     }
-    for i in 0..mainstruct.data.graphs[0].len() {
-        let j = mainstruct.data.graphs[0][i];
 
-        //graph_data[i] = (j.0, j.1+1.0);
-        mainstruct.data.graphs[0][i] = (j.0, j.1 + 1.0);
-    }
 
     let vs: Vec<f64> = vec![1.0, 2.0, 3.0];
     mainstruct.data.graphs[2].insert(0, (mainstruct.data.neutron_rate as f64, 0.0));

@@ -108,7 +108,7 @@ fn main() -> Result<(), io::Error> {
                 .marker(symbols::Marker::Braille)
                 .graph_type(GraphType::Line)
                 .style(Style::default().fg(Color::Green))
-                .data(&[(0.0, 0.0)]),
+                .data(&[]),
         ];
 
         let graph = Chart::new(datasets)
@@ -206,11 +206,9 @@ pub fn read_input(
                             send_command(command_text.concat().as_str(), mainstruct, height);
                             //prepend the command to the previous commands
                             previous_command.0.insert(0, command_text.clone());
-                            if command_text.concat() != "clear" {
-                                if command_text.concat().starts_with("help") {
-                                } else {
-                                    mainstruct.data.log.push(command_text.concat());
-                                }
+                            let blacklist = vec!["clear", "cls", "help"];
+                            if !blacklist.contains(&command_text.concat().as_str()) {
+                                mainstruct.data.log.push(command_text.concat());
                             }
                             //mainstruct.data.log.push(format!("length: {}", mainstruct.data.log.len()));
 

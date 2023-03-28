@@ -1,12 +1,17 @@
-use std::io::Stdout;
+use std::collections::{hash_map, HashMap};
+use std::fs::File;
+use std::io::{Stdout, Write};
 
 use crate::structs::MainStruct;
+use crate::svg::render_svg;
+use regex::Regex;
 use tui::backend::CrosstermBackend;
 use tui::layout::{Constraint, Direction, Layout, Rect};
 use tui::style::{Color, Style};
-use tui::text::Text;
-use tui::widgets::{Block, Borders, Paragraph};
-use tui::Frame;
+use tui::text::{Text, Spans, Span};
+use tui::widgets::{Block, Borders, Paragraph, Dataset, Chart, Axis};
+use tui::{Frame, symbols};
+use tui::widgets::GraphType::Line as OtherLine;
 
 pub fn fuel_rod_table(
     width: i32,
@@ -118,8 +123,12 @@ pub fn fuel_rod_table(
             let temperature_color;
             if temperature == 100.0 {
                 temperature_color = Color::Reset;
+                mainstruct.absorber_rods[i as usize][j as usize].temperature_color =
+                temperature_color;
             } else {
                 temperature_color = Color::Rgb(rgba[0], rgba[1], rgba[2]);
+                mainstruct.absorber_rods[i as usize][j as usize].temperature_color =
+                    temperature_color;
             }
 
             //mainstruct.data.log.push(format!("Temprature: {}, rgba: {:?}", 100.0-temperature, rgba));
@@ -140,4 +149,109 @@ pub fn fuel_rod_table(
             frame.render_widget(cell_text, column_rects[j as usize]);
         }
     }
+}
+
+pub fn fuel_rod_svg(mainstruct: &mut MainStruct, frame: &mut Frame<CrosstermBackend<Stdout>>, layout: Rect) {
+    let width = layout.width as f64;
+    let height = layout.height as f64;
+    let ratio = width / height;
+    /* 
+    <?xml version="1.0" encoding="utf-8"?>
+    <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+        <path d="M 50.000 0.000 L 50.000 100.000" style="stroke: rgb(0, 0, 0); stroke-width: 1; fill: none;" />
+        <path d="M 50.000 0.000 L 50.000 {}.000" style="stroke: rgb(0, 0, 0); stroke-width: 1; fill: none;" />
+    </svg>
+     */
+    let header_1 = r#"<?xml version="1.0" encoding="utf-8"?>"#;
+    let header_2 = r#"<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">"#;
+    let footer = r#"</svg>"#;
+    let selected_fuel_rod = mainstruct.core.selected_rod;
+
+    let mut pos = (0, 0);
+    for i in 0..mainstruct.absorber_rods.len() {
+        for j in 0..mainstruct.absorber_rods[i].len() {
+            if i * 5 +j  == selected_fuel_rod {
+                pos = (i, j);
+            }
+        }
+    }
+    mainstruct.data.log.push(format!("{:?}", (pos.0 + 1, pos.1 + 1)));
+
+    let abs_rod_pos = mainstruct.absorber_rods[pos.0][pos.0].absorber_rod_position / 2.0 +15.0;
+    let absorber_rod = format!(r#"<path d="M 50.000 10.000 L 50.000 {}.000" style="stroke: rgb(0, 0, 0); stroke-width: 1; fill: none;" />"#, abs_rod_pos);
+    let fuel_rod_container = r#"<rect x="37" y="25" width="25" height="60" style="fill: none; stroke-width: 3; stroke: rgb(0,0,0);" />"#;
+    let mut fuel_rod_svg = String::new();
+    fuel_rod_svg.push_str(header_1);
+    fuel_rod_svg.push_str(header_2);
+    fuel_rod_svg.push_str(fuel_rod_container);
+    fuel_rod_svg.push_str(absorber_rod.as_str());
+    fuel_rod_svg.push_str(footer);
+    //save svg to file    
+
+    let mut hash_map: HashMap<usize, (Vec<(f64, f64)>, String)> = HashMap::new();
+    render_svg(fuel_rod_svg, ratio, mainstruct, &mut hash_map);
+    let mut datasets = Vec::new();
+
+    for i in hash_map.values() {
+        let re = Regex::new(r"stroke:\s*rgb\((\d+),\s*(\d+),\s*(\d+)\);").unwrap();
+        let color = Color::Rgb(
+            re.captures(&i.1)
+                .unwrap()
+                .get(1)
+                .unwrap()
+                .as_str()
+                .parse::<u8>()
+                .unwrap(),
+            re.captures(&i.1)
+                .unwrap()
+                .get(2)
+                .unwrap()
+                .as_str()
+                .parse::<u8>()
+                .unwrap(),
+            re.captures(&i.1)
+                .unwrap()
+                .get(3)
+                .unwrap()
+                .as_str()
+                .parse::<u8>()
+                .unwrap(),
+        );
+        let dataset = Dataset::default()
+            .data(&i.0)
+            .marker(symbols::Marker::Braille)
+            .graph_type(OtherLine)
+            .style(Style::default().fg(color));
+        datasets.push(dataset);
+    }
+    let fuel_rod = Chart::new(datasets)
+        .x_axis(
+            Axis::default()
+                .style(Style::default().fg(Color::Gray))
+                .bounds([0.0, 100.0]),
+        )
+        .y_axis(
+            Axis::default()
+                .style(Style::default().fg(Color::Gray))
+                .bounds([0.0, 100.0]),
+        );
+    frame.render_widget(fuel_rod, layout);
+    let fuel_rod = Paragraph::new(vec![
+            Spans::from(format!("Fuel rod: {}", selected_fuel_rod +1)),
+            Spans::from(format!("Fuel temp: {:.1}°C", mainstruct.absorber_rods[pos.0][pos.1].fuel_temperature)),
+            Spans::from(format!("C-Rod pos: {:.1}%", mainstruct.absorber_rods[pos.0][pos.1].absorber_rod_position)),
+
+    ]).block(Block::default().borders(Borders::ALL).title("Data").style(Style::default().bg(mainstruct.absorber_rods[pos.0][pos.1].temperature_color)));
+    // render text in the top right corner
+    let text_chunk = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([Constraint::Percentage(70), Constraint::Percentage(28),  Constraint::Percentage(2)].as_ref())
+        .split(layout);
+    let vert_alignment = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Percentage(10), Constraint::Percentage(88), Constraint::Percentage(2)].as_ref())
+        .split(text_chunk[1]);
+    
+    frame.render_widget(fuel_rod, vert_alignment[1]);
+
 }

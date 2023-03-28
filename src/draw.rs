@@ -1,3 +1,4 @@
+use crate::ARCFM::fuel_rod_svg;
 use crate::svg::render_svg;
 use crate::{structs::MainStruct, ARCFM::fuel_rod_table};
 use regex::Regex;
@@ -75,7 +76,7 @@ pub fn draw(
         //frame.render_widget(reactor_core, chunks_3[0]);
         match mainstruct.data.left_tab_index {
             0 => fuel_rod_table(5, 5, chunks_3[0], frame, mainstruct),
-            1 => draw_turbine(mainstruct, frame, chunks_3[0]),
+            1 => fuel_rod_svg(mainstruct, frame, chunks_3[0]),
             2 => draw_turbine(mainstruct, frame, chunks_3[0]),
             _ => {}
         }

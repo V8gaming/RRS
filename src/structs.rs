@@ -1,3 +1,4 @@
+use tui::style::Color;
 pub struct FuelRodData {
     FuelPellet: FuelPellet,
     Cladding: Cladding,
@@ -80,6 +81,7 @@ pub struct Core {
     pub rate_of_change: f32,
     pub drain_valve: f32,
     pub drain_setpoint: f32,
+    pub selected_rod: usize,
 }
 impl Default for Core {
     fn default() -> Self {
@@ -93,6 +95,7 @@ impl Default for Core {
             rate_of_change: 0.0,
             drain_valve: 0.0,
             drain_setpoint: 0.0,
+            selected_rod: 0,
         }
     }
 }
@@ -185,6 +188,7 @@ pub struct FuelRod {
     pub reactivity: f32,
     pub neutron_rate: f32,
     pub neighbors: ([(u16, u16); 4], [bool; 4]),
+    pub temperature_color: Color,
 }
 impl Default for FuelRod {
     fn default() -> Self {
@@ -200,6 +204,7 @@ impl Default for FuelRod {
                 [(0, 0), (0, 0), (0, 0), (0, 0)],
                 [false, false, false, false],
             ),
+            temperature_color: Color::Reset,
         }
     }
 }

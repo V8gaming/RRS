@@ -11,7 +11,12 @@ pub fn render_svg(
     hash_map: &mut HashMap<usize, (Vec<(f64, f64)>, String)>,
 ) {
     let mut buf = String::new();
-    let mut f = fs::read_to_string(svg).unwrap();
+    let mut f = String::new();
+    if svg .ends_with(".svg") {
+        f = fs::read_to_string(svg).unwrap();
+    } else {
+        f = svg;
+    }
     let mut view_box = Vec::new();
     // read the whole file
     let parser = xml::reader::EventReader::from_str(f.as_str());

@@ -19,6 +19,7 @@ pub fn send_command(command: &str, mainstruct: &mut MainStruct, height: u16) {
         r"hold rods|setpoint hold",
         r"drain valve (\d+)",
         r"select rod (\d+)",
+        r"dev sp speed (\d+)",
     ])
     .unwrap();
     let matches: Vec<_> = set.matches(command).into_iter().collect();
@@ -114,6 +115,7 @@ pub fn send_command(command: &str, mainstruct: &mut MainStruct, height: u16) {
                 "center core only - insert only the center core",
                 "setpoint speed <slow|medium|fast> - set the speed of the setpoint change",
                 "dev sp <position> - change the position of the absorber rods to position",
+                "dev sp speed <number> - set the speed of the absorber rod change",
                 "hold rods - hold the rods in place",
                 "drain valve <position> - change the position of the drain valve to position",
                 "select rod <rod number> - select a rod to view its data",
@@ -202,6 +204,13 @@ pub fn send_command(command: &str, mainstruct: &mut MainStruct, height: u16) {
             let cap = re.captures(command).unwrap();
             let rod = cap[1].parse::<usize>().unwrap();
             mainstruct.core.selected_rod = rod - 1;
+        }
+        [15] => {
+            let re = Regex::new(r"dev sp speed (\d+)").unwrap();
+            let cap = re.captures(command).unwrap();
+            let speed = cap[1].parse::<f32>().unwrap();
+            mainstruct.core.speed_setpoint = speed;
+            
         }
 
         _ => {

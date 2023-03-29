@@ -192,6 +192,17 @@ pub fn read_input(
                     terminal.show_cursor()?;
                     terminal.clear()?;
                     return Err(io::Error::new(io::ErrorKind::Other, "Quit"));
+                } else if event.code == KeyCode::Char('c') && event.modifiers == event::KeyModifiers::CONTROL{
+                    // clear the screen
+                    execute!(
+                        terminal.backend_mut(),
+                        LeaveAlternateScreen,
+                        DisableMouseCapture
+                    )?;
+                    disable_raw_mode()?;
+                    terminal.show_cursor()?;
+                    terminal.clear()?;
+                    return Err(io::Error::new(io::ErrorKind::Other, "Quit"));
                 } else {
                     match event.code {
                         KeyCode::Char(c) => {

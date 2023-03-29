@@ -33,17 +33,7 @@ pub fn fuel_rod_table(
         .margin(2)
         .split(layout);
 
-    let color_gradient = colorgrad::CustomGradient::new()
-        .html_colors(&[
-            "rgba(0,0,0,1)",
-            "rgba(255,192,0,1)",
-            "rgba(255,126,0,1)",
-            "rgba(255,67,0,1)",
-            "rgba(255,0,0,1)",
-        ])
-        .domain(&[0.0, 100.0])
-        .build()
-        .unwrap();
+
 
     for i in 0..height {
         let column_rects = Layout::default()
@@ -72,64 +62,10 @@ pub fn fuel_rod_table(
                 mainstruct.absorber_rods[i as usize][j as usize].neighbors.0[3] =
                     (i as u16, (j + 1) as u16);
             }
-            let MIN = 0.0;
-            let MAX = 100.0;
-            // sum of neighbor temperatures times by 0.05
-            let mut neighbor_temp_sum = 0.0;
-            //mainstruct.data.log.push(format!("{}, {}",i+1,j+1));
-            let mut adjusted_height = height;
-            let mut adjusted_width = width;
-            if height % 2 != 0 {
-                adjusted_height = height + 1;
-            }
-            if width % 2 != 0 {
-                adjusted_width = width + 1;
-            }
-            let center = (adjusted_height / 2, adjusted_width / 2);
-            //mainstruct.data.log.push(format!("{}, {}",center.0,center.1));
-            for k in 0..mainstruct.absorber_rods[i as usize][j as usize]
-                .neighbors
-                .1
-                .len()
-            {
-                if mainstruct.absorber_rods[i as usize][j as usize].neighbors.1[k] {
-                    let pos = mainstruct.absorber_rods[i as usize][j as usize].neighbors.0[0];
-                    let abs_rod_pos = mainstruct.absorber_rods[pos.0 as usize][pos.1 as usize]
-                        .absorber_rod_position;
-                    let fuel_temp =
-                        ((MAX - MIN) * (1.0 - abs_rod_pos as f64 / 100.0) + MIN).round();
-                    // for every row, column closer to the center, the temperature is 5% higher
-                    //let distance = ((pos.0 - center.0 as u16).pow(2) as f64 + (pos.1 - center.1 as u16).pow(2) as f64).sqrt();
-                    let distance: f64 = ((i as f64 + 1.0 - center.0 as f64).abs().powf(2.0)
-                        + (j as f64 + 1.0 - center.1 as f64).abs().powf(2.0))
-                    .sqrt();
-                    //mainstruct.data.log.push(format!("{:?}", distance));
-                    neighbor_temp_sum += fuel_temp * -0.05 * distance;
-
-                    //neighbor_temp_sum += fuel_temp;
-                }
-            }
+            let neighbor_temp_sum = neighbor_temp_sum_fn(height, width, mainstruct, i, j);
 
             //mainstruct.data.log.push(format!("{:?}, {:?}", mainstruct.absorber_rods[0][0].neighbors, mainstruct.absorber_rods[1][1].neighbors));
 
-            let temperature = ((MAX - MIN)
-                * (1.0
-                    - mainstruct.absorber_rods[i as usize][j as usize].fuel_temperature as f64
-                        / 600.0)
-                + MIN
-                + (neighbor_temp_sum * 0.05))
-                .round();
-            let rgba = color_gradient.at(100.0 - temperature).to_rgba8();
-            let temperature_color;
-            if temperature == 100.0 {
-                temperature_color = Color::Reset;
-                mainstruct.absorber_rods[i as usize][j as usize].temperature_color =
-                temperature_color;
-            } else {
-                temperature_color = Color::Rgb(rgba[0], rgba[1], rgba[2]);
-                mainstruct.absorber_rods[i as usize][j as usize].temperature_color =
-                    temperature_color;
-            }
 
             //mainstruct.data.log.push(format!("Temprature: {}, rgba: {:?}", 100.0-temperature, rgba));
 
@@ -144,11 +80,52 @@ pub fn fuel_rod_table(
             let cell_text = Paragraph::new(text).block(
                 Block::default()
                     .borders(Borders::NONE)
-                    .style(Style::default().bg(temperature_color)),
+                    .style(Style::default().bg(mainstruct.absorber_rods[i as usize][j as usize].temperature_color)),
             );
             frame.render_widget(cell_text, column_rects[j as usize]);
         }
     }
+}
+
+fn neighbor_temp_sum_fn(height: i32, width: i32, mainstruct: &mut MainStruct, i: i32, j: i32) -> f64 {
+    let MIN = 0.0;
+    let MAX = 100.0;
+    // sum of neighbor temperatures times by 0.05
+    let mut neighbor_temp_sum = 0.0;
+    //mainstruct.data.log.push(format!("{}, {}",i+1,j+1));
+    let mut adjusted_height = height;
+    let mut adjusted_width = width;
+    if height % 2 != 0 {
+        adjusted_height = height + 1;
+    }
+    if width % 2 != 0 {
+        adjusted_width = width + 1;
+    }
+    let center = (adjusted_height / 2, adjusted_width / 2);
+    //mainstruct.data.log.push(format!("{}, {}",center.0,center.1));
+    for k in 0..mainstruct.absorber_rods[i as usize][j as usize]
+        .neighbors
+        .1
+        .len()
+    {
+        if mainstruct.absorber_rods[i as usize][j as usize].neighbors.1[k] {
+            let pos = mainstruct.absorber_rods[i as usize][j as usize].neighbors.0[0];
+            let abs_rod_pos = mainstruct.absorber_rods[pos.0 as usize][pos.1 as usize]
+                .absorber_rod_position;
+            let fuel_temp =
+                ((MAX - MIN) * (1.0 - abs_rod_pos as f64 / 100.0) + MIN).round();
+            // for every row, column closer to the center, the temperature is 5% higher
+            //let distance = ((pos.0 - center.0 as u16).pow(2) as f64 + (pos.1 - center.1 as u16).pow(2) as f64).sqrt();
+            let distance: f64 = ((i as f64 + 1.0 - center.0 as f64).abs().powf(2.0)
+                + (j as f64 + 1.0 - center.1 as f64).abs().powf(2.0))
+            .sqrt();
+            //mainstruct.data.log.push(format!("{:?}", distance));
+            neighbor_temp_sum += fuel_temp * -0.05 * distance;
+
+            //neighbor_temp_sum += fuel_temp;
+        }
+    }
+    neighbor_temp_sum
 }
 
 pub fn fuel_rod_svg(mainstruct: &mut MainStruct, frame: &mut Frame<CrosstermBackend<Stdout>>, layout: Rect) {
@@ -253,5 +230,47 @@ pub fn fuel_rod_svg(mainstruct: &mut MainStruct, frame: &mut Frame<CrosstermBack
         .split(text_chunk[1]);
     
     frame.render_widget(fuel_rod, vert_alignment[1]);
+
+}
+pub fn temperature(mainstruct: &mut MainStruct, width: i32, height: i32) {
+    let MIN = 0.0;
+    let MAX = 100.0;
+    let color_gradient = colorgrad::CustomGradient::new()
+    .html_colors(&[
+        "rgba(0,0,0,1)",
+        "rgba(255,192,0,1)",
+        "rgba(255,126,0,1)",
+        "rgba(255,67,0,1)",
+        "rgba(255,0,0,1)",
+    ])
+    .domain(&[0.0, 100.0])
+    .build()
+    .unwrap();
+    for i in 0..mainstruct.absorber_rods.len() {
+        for j in 0..mainstruct.absorber_rods[0].len() {
+
+            let temperature = ((MAX - MIN)
+            * (1.0
+                - mainstruct.absorber_rods[i as usize][j as usize].fuel_temperature as f64
+                    / 600.0)
+            + MIN
+            + (neighbor_temp_sum_fn(height, width, mainstruct, i as i32, j as i32) * 0.05))
+            .round();
+            let rgba = color_gradient.at(100.0 - temperature).to_rgba8();
+            let temperature_color;
+            if temperature == 100.0 {
+                temperature_color = Color::Reset;
+                mainstruct.absorber_rods[i as usize][j as usize].temperature_color =
+                temperature_color;
+            } else {
+                temperature_color = Color::Rgb(rgba[0], rgba[1], rgba[2]);
+                mainstruct.absorber_rods[i as usize][j as usize].temperature_color =
+                    temperature_color;
+            }
+        }
+    }
+
+
+
 
 }

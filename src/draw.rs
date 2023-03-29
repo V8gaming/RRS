@@ -1,4 +1,4 @@
-use crate::ARCFM::fuel_rod_svg;
+use crate::ARCFM::{fuel_rod_svg, temperature};
 use crate::svg::render_svg;
 use crate::{structs::MainStruct, ARCFM::fuel_rod_table};
 use regex::Regex;
@@ -74,6 +74,7 @@ pub fn draw(
         frame.render_widget(left_tabs, chunks_3[0]);
 
         //frame.render_widget(reactor_core, chunks_3[0]);
+        temperature(mainstruct, 5, 5);
         match mainstruct.data.left_tab_index {
             0 => fuel_rod_table(5, 5, chunks_3[0], frame, mainstruct),
             1 => fuel_rod_svg(mainstruct, frame, chunks_3[0]),
@@ -112,7 +113,7 @@ pub fn draw_turbine(
         .marker(symbols::Marker::Braille)
         .graph_type(tui::widgets::GraphType::Scatter);
     let mut hash_map: HashMap<usize, (Vec<(f64, f64)>, String)> = HashMap::new();
-    render_svg("./test.svg".to_string(), ratio, mainstruct, &mut hash_map);
+    render_svg("./resources/test.svg".to_string(), ratio, mainstruct, &mut hash_map);
     //mainstruct.data.log.push(format!("SVG data: {:?}", svg_data));
     //let picture = Dataset::default().data(&svg_data).marker(symbols::Marker::Braille).graph_type(OtherLine).style(Style::default().fg(Color::Red));
     let mut datasets = Vec::new();

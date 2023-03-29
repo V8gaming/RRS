@@ -1,7 +1,7 @@
 [![BuildNightly](https://github.com/V8gaming/RBMK-1000/actions/workflows/rust.yml/badge.svg?branch=master)](https://github.com/V8gaming/RBMK-1000/actions/workflows/rust.yml)
 # RMBK-1000 Simulator
 This a a recreation of the RBMK-1000 reactor from Chernobyl: the legacy continues.
-![](./preview.png)
+![](./resources/preview.png)
 ## Introduction
 
 RBMK-1000 Simulator is a tool for simulating the behavior of the RBMK-1000 reactor used at the Chernobyl Nuclear Power Plant. The simulator allows users to explore different scenarios and experiment with the control of the reactor, without the risk of a real-life disaster. By providing a safe and controlled environment for testing, RBMK-1000 Simulator can help improve the safety and reliability of nuclear power plants worldwide.

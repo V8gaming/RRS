@@ -22,7 +22,7 @@ use crate::interpolate::interpolate_position;
 use crate::structs::MainStruct;
 
 #[allow(non_snake_case)]
-mod ARCFM;
+mod arcfm;
 #[warn(non_snake_case)]
 mod commands;
 mod draw;
@@ -191,8 +191,11 @@ pub fn read_input(
                     disable_raw_mode()?;
                     terminal.show_cursor()?;
                     terminal.clear()?;
+
                     return Err(io::Error::new(io::ErrorKind::Other, "Quit"));
-                } else if event.code == KeyCode::Char('c') && event.modifiers == event::KeyModifiers::CONTROL{
+                } else if event.code == KeyCode::Char('c')
+                    && event.modifiers == event::KeyModifiers::CONTROL
+                {
                     // clear the screen
                     execute!(
                         terminal.backend_mut(),

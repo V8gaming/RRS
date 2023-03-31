@@ -1,18 +1,21 @@
-use std::{collections::HashMap, fs, f64::consts::PI};
+use std::{collections::HashMap, f64::consts::PI, fs};
 
+use lazy_static::lazy_static;
 use regex::Regex;
 
 use crate::structs::MainStruct;
-
+lazy_static! {
+    static ref FILL_RE: Regex = Regex::new(r"fill:\s*rgb\((\d+),\s*(\d+),\s*(\d+)\);").unwrap();
+}
 pub fn render_svg(
     svg: String,
     ratio: f64,
     mainstruct: &mut MainStruct,
-    hash_map: &mut HashMap<usize, (Vec<(f64, f64)>, String)>,
+    hash_map: &mut HashMap<usize, (Vec<(f64, f64)>, String, bool)>,
 ) {
     let mut buf = String::new();
     let mut f = String::new();
-    if svg .ends_with(".svg") {
+    if svg.ends_with(".svg") {
         f = fs::read_to_string(svg).unwrap();
     } else {
         f = svg;
@@ -63,7 +66,7 @@ pub fn render_svg(
                         "".to_string(),
                         "".to_string(),
                         "".to_string(),
-                    );  
+                    );
                     for i in &attributes {
                         match i.name.local_name.as_str() {
                             "x1" => {
@@ -89,15 +92,20 @@ pub fn render_svg(
                         (
                             vec![
                                 (
-                                    variables.0.parse::<f64>().unwrap() / (view_box[0] /100.0),
-                                    100.0 - variables.1.parse::<f64>().unwrap() / (view_box[1] /100.0),
+                                    variables.0.parse::<f64>().unwrap() / (view_box[0] / 100.0),
+                                    100.0
+                                        - variables.1.parse::<f64>().unwrap()
+                                            / (view_box[1] / 100.0),
                                 ),
                                 (
-                                    variables.2.parse::<f64>().unwrap() / (view_box[0] /100.0),
-                                    100.0 - variables.3.parse::<f64>().unwrap() / (view_box[1] /100.0),
+                                    variables.2.parse::<f64>().unwrap() / (view_box[0] / 100.0),
+                                    100.0
+                                        - variables.3.parse::<f64>().unwrap()
+                                            / (view_box[1] / 100.0),
                                 ),
                             ],
                             variables.4,
+                            false,
                         ),
                     );
                 }
@@ -130,10 +138,10 @@ pub fn render_svg(
                             _ => {}
                         }
                     }
-                    let x = variables.0.parse::<f64>().unwrap() / (view_box[0] /100.0);
-                    let y = variables.1.parse::<f64>().unwrap() / (view_box[1] /100.0);
-                    let width = variables.2.parse::<f64>().unwrap() / (view_box[0] /100.0);
-                    let height = variables.3.parse::<f64>().unwrap() / (view_box[1] /100.0);
+                    let x = variables.0.parse::<f64>().unwrap() / (view_box[0] / 100.0);
+                    let y = variables.1.parse::<f64>().unwrap() / (view_box[1] / 100.0);
+                    let width = variables.2.parse::<f64>().unwrap() / (view_box[0] / 100.0);
+                    let height = variables.3.parse::<f64>().unwrap() / (view_box[1] / 100.0);
 
                     hash_map.insert(
                         len + 1,
@@ -146,6 +154,7 @@ pub fn render_svg(
                                 (x, 100.0 - y),
                             ],
                             variables.4,
+                            false,
                         ),
                     );
                 }
@@ -161,10 +170,15 @@ pub fn render_svg(
             mainstruct,
             ratio,
             &object.1 .2,
+            &object.1 .1,
         );
         //mainstruct.data.log.push(format!("Points: {:?}", points));
         let style = object.1 .1.to_owned();
-        hash_map.insert(object.0, (points, style));
+
+        hash_map.insert(hash_map.len() + 1, (points.0, style.clone(), false));
+        if points.1.is_some() {
+            hash_map.insert(hash_map.len() + 1 + 1, (points.1.unwrap(), style, true));
+        }
     }
 }
 fn draw_path(
@@ -173,8 +187,11 @@ fn draw_path(
     mainstruct: &mut MainStruct,
     ratio: f64,
     transform_str: &str,
-) -> Vec<(f64, f64)> {
+    style: &str,
+) -> (Vec<(f64, f64)>, Option<Vec<(f64, f64)>>) {
     let mut points = Vec::new();
+    let mut fill: Vec<(f64, f64)> = Vec::new();
+    let mut fill_bool = false;
     let x_scale = view_box[0] / 100.0;
     let y_scale = view_box[1] / 100.0;
 
@@ -211,11 +228,11 @@ fn draw_path(
                         x = transformed_points.0;
                         y = transformed_points.1;
                     }
-                    start = (x, 100.0-y);
+                    start = (x, 100.0 - y);
                     points.push(start);
                     prev_point = start;
                     prev_command = command;
-                    prev_match = format!("{}, {}, {}", command, x, 100.0-y);
+                    prev_match = format!("{}, {}, {}", command, x, 100.0 - y);
                 }
                 "L" => {
                     let x = data[1].parse::<f64>().unwrap();
@@ -229,10 +246,10 @@ fn draw_path(
                         x = transformed_points.0;
                         y = transformed_points.1;
                     }
-                    points.push((x, 100.0-y));
-                    prev_point = (x, 100.0-y);
+                    points.push((x, 100.0 - y));
+                    prev_point = (x, 100.0 - y);
                     prev_command = command;
-                    prev_match = format!("{}, {}, {}", command, x, 100.0-y);
+                    prev_match = format!("{}, {}, {}", command, x, 100.0 - y);
                 }
                 "Q" => {
                     // Quadratic Bezier Curve
@@ -250,7 +267,7 @@ fn draw_path(
                             t,
                             ratio,
                             Some(transform_str.clone()),
-                            (x_scale, y_scale)
+                            (x_scale, y_scale),
                         );
                         points.push(point);
                     }
@@ -279,7 +296,7 @@ fn draw_path(
                             t,
                             ratio,
                             Some(transform_str.clone()),
-                            (x_scale, y_scale)
+                            (x_scale, y_scale),
                         );
                         points.push(point);
                     }
@@ -300,7 +317,7 @@ fn draw_path(
                     let mut control_point_1_x = 0.0;
                     let mut control_point_1_y = 0.0;
                     let whitelist = vec!["C", "S"];
-                    if whitelist.contains(&prev_command){
+                    if whitelist.contains(&prev_command) {
                         // first control point is reflection of second control point on the previous command relative to the current point
                         let data = prev_match.split(", ").collect::<Vec<&str>>();
                         mainstruct.data.log.push(format!("data: {:?}", data));
@@ -327,7 +344,7 @@ fn draw_path(
                             t,
                             ratio,
                             Some(transform_str.clone()),
-                            (x_scale, y_scale)
+                            (x_scale, y_scale),
                         );
                         points.push(point);
                     }
@@ -362,7 +379,7 @@ fn draw_path(
                             t,
                             ratio,
                             Some(transform_str.clone()),
-                            (x_scale, y_scale)
+                            (x_scale, y_scale),
                         );
                         points.push(point);
                     }
@@ -390,7 +407,7 @@ fn draw_path(
                             t,
                             ratio,
                             Some(transform_str.clone()),
-                            (x_scale, y_scale)
+                            (x_scale, y_scale),
                         );
                         points.push(point);
                     }
@@ -404,7 +421,8 @@ fn draw_path(
                     if Some(transform_str) == None {
                         continue;
                     } else {
-                        let transformed_points = transform(end_point_x, end_point_y, transform_str, (x_scale, y_scale));
+                        let transformed_points =
+                            transform(end_point_x, end_point_y, transform_str, (x_scale, y_scale));
                         end_point_x = transformed_points.0;
                         end_point_y = transformed_points.1;
                     }
@@ -419,7 +437,8 @@ fn draw_path(
                     if Some(transform_str) == None {
                         continue;
                     } else {
-                        let transformed_points = transform(end_point_x, end_point_y, transform_str, (x_scale, y_scale));
+                        let transformed_points =
+                            transform(end_point_x, end_point_y, transform_str, (x_scale, y_scale));
                         end_point_x = transformed_points.0;
                         end_point_y = transformed_points.1;
                     }
@@ -434,9 +453,43 @@ fn draw_path(
 
         //println!("{:?}", data);
     }
-
-    return points;
+    // if "i" & "j" is within points than push to fill, i is 0 to 100,  j is 0 to 100
+    let x_points: Vec<f64> = points.iter().map(|x| x.0).collect();
+    let y_points: Vec<f64> = points.iter().map(|x| x.1).collect();
+    if FILL_RE.is_match(style) {
+        let x_min = x_points
+            .iter()
+            .min_by(|a, b| a.partial_cmp(b).unwrap())
+            .unwrap();
+        let x_max = x_points
+            .iter()
+            .max_by(|a, b| a.partial_cmp(b).unwrap())
+            .unwrap();
+        let y_min = y_points
+            .iter()
+            .min_by(|a, b| a.partial_cmp(b).unwrap())
+            .unwrap();
+        let y_max = y_points
+            .iter()
+            .max_by(|a, b| a.partial_cmp(b).unwrap())
+            .unwrap();
+        //mainstruct.data.log.push(format!("{}, {}, {}, {}", x_min, x_max, y_min, y_max));
+        let fill: Vec<(f64, f64)> = (0..100)
+            .flat_map(|i| (0..100).map(move |j| (i as f64, j as f64)))
+            .filter_map(|(i, j)| {
+                if (i > *x_min) && (i < *x_max) && (j > *y_min) && (j < *y_max) {
+                    Some((i, j))
+                } else {
+                    None
+                }
+            })
+            .collect();
+        return (points, Some(fill));
+    } else {
+        return (points, None);
+    }
 }
+
 fn split_keep<'a>(r: &Regex, text: &'a str) -> Vec<&'a str> {
     let mut result = Vec::new();
     let mut last = 0;
@@ -479,7 +532,7 @@ fn cubic_bezier_curve(
     t: f64,
     ratio: f64,
     transform_str: Option<&str>,
-    scales: (f64, f64)
+    scales: (f64, f64),
 ) -> (f64, f64) {
     let x = (1.0 - t).powi(3) * start.0
         + 3.0 * (1.0 - t).powi(2) * t * control_1.0

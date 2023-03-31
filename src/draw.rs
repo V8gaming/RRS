@@ -1,6 +1,6 @@
-use crate::ARCFM::{fuel_rod_svg, temperature};
+use crate::arcfm::{fuel_rod_svg, temperature};
 use crate::svg::render_svg;
-use crate::{structs::MainStruct, ARCFM::fuel_rod_table};
+use crate::{arcfm::fuel_rod_table, structs::MainStruct};
 use regex::Regex;
 use std::{
     collections::HashMap,
@@ -112,8 +112,13 @@ pub fn draw_turbine(
         .data(&[(50.0_f64, 50.0_f64)])
         .marker(symbols::Marker::Braille)
         .graph_type(tui::widgets::GraphType::Scatter);
-    let mut hash_map: HashMap<usize, (Vec<(f64, f64)>, String)> = HashMap::new();
-    render_svg("./resources/test.svg".to_string(), ratio, mainstruct, &mut hash_map);
+    let mut hash_map: HashMap<usize, (Vec<(f64, f64)>, String, bool)> = HashMap::new();
+    render_svg(
+        "./resources/test.svg".to_string(),
+        ratio,
+        mainstruct,
+        &mut hash_map,
+    );
     //mainstruct.data.log.push(format!("SVG data: {:?}", svg_data));
     //let picture = Dataset::default().data(&svg_data).marker(symbols::Marker::Braille).graph_type(OtherLine).style(Style::default().fg(Color::Red));
     let mut datasets = Vec::new();
@@ -192,4 +197,3 @@ fn draw_circle(radius: f64, ratio: f64) -> Vec<(f64, f64)> {
     }
     return points;
 }
-

@@ -1,12 +1,12 @@
 [![BuildNightly](https://github.com/V8gaming/RBMK-1000/actions/workflows/rust.yml/badge.svg?branch=master)](https://github.com/V8gaming/RBMK-1000/actions/workflows/rust.yml)
 # RRS: Rust Reactor Simulation
 
-RRS (Rust Reactor Sim) is a simulation game that puts you in control of a virtual RBMK-1000 nuclear reactor, inspired by the events of the Chernobyl disaster. Test your engineering skills and manage the reactor to prevent a meltdown, all while dealing with the legacy of Chernobyl's aftermath.
+RRS (Rust Reactor Sim) is a simulation game that puts you in control of a virtual RBMK-1000 nuclear reactor, inspired by Chernobyl: the legacy continues. Test your engineering skills and manage the reactor to prevent a meltdown.
 ![](./resources/preview.png)
 
 ## Introduction
 
-RRS (Rust Reactor Sim) is an open-source simulation software inspired by the RBMK-1000 reactor of the Chernobyl Nuclear Power Plant. With RRS, you can explore the legacy of Chernobyl and learn about reactor physics in a safe and educational way.
+RRS (Rust Reactor Sim) is an open-source simulation software inspired by the RBMK-1000 reactor of the Chernobyl Nuclear Power Plant. With RRS, you can learn about reactor physics in a safe and educational way.
 
 ## Commands
 

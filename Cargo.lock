@@ -531,6 +531,7 @@ dependencies = [
 [[package]]
 name = "tui"
 version = "0.19.0"
+source = "git+https://github.com/V8gaming/tui-rs.git#9ce3d5d638a39d1749e4db70f2ab816e13e9603a"
 dependencies = [
  "bitflags",
  "cassowary",

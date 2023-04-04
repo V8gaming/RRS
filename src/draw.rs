@@ -20,7 +20,6 @@ use tui::{
 pub fn draw(
     terminal: &mut Terminal<CrosstermBackend<io::Stdout>>,
     tui_command_text: Paragraph<'_>,
-    reactor_core: Block<'_>,
     block_2: Block<'_>,
     mainstruct: &mut MainStruct,
     log_text: Paragraph,
@@ -97,12 +96,15 @@ pub fn draw_turbine(
     let width = layout.width as f64;
     let height = layout.height as f64;
     let ratio = width / height;
+    /*
     let square_data = draw_rectangle(20.0, 20.0, ratio);
+
+    let circle_data = draw_circle(20.0, ratio);
+         
     let square = Dataset::default()
         .data(&square_data)
         .marker(symbols::Marker::Braille)
         .graph_type(OtherLine);
-    let circle_data = draw_circle(20.0, ratio);
     let circle = Dataset::default()
         .data(&circle_data)
         .marker(symbols::Marker::Braille)
@@ -111,7 +113,8 @@ pub fn draw_turbine(
         .style(Style::default().fg(Color::Red))
         .data(&[(50.0_f64, 50.0_f64)])
         .marker(symbols::Marker::Braille)
-        .graph_type(tui::widgets::GraphType::Scatter);
+        .graph_type(tui::widgets::GraphType::Scatter); 
+    */
     let mut hash_map: HashMap<usize, (Vec<(f64, f64)>, String, bool)> = HashMap::new();
     render_svg(
         "./resources/test.svg".to_string(),

@@ -4,7 +4,7 @@ use crossterm::{
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
-use interpolate::{fuel_temperature, graphline, neutron_flux, neutron_rate};
+use interpolate::{fuel_temperature, graphline, neutron_flux, neutron_rate, turbine};
 use std::{io, sync::mpsc::channel, thread, time::Duration, vec};
 use tui::{
     backend::CrosstermBackend,
@@ -76,6 +76,7 @@ fn main() -> Result<(), io::Error> {
             neutron_flux(&mut mainstruct);
             fuel_temperature(&mut mainstruct);
             steam(&mut mainstruct);
+            turbine(&mut mainstruct);
         }
         let graphs = mainstruct.data.graphs.clone();
         let datasets = vec![
@@ -141,7 +142,6 @@ fn main() -> Result<(), io::Error> {
         let log_paragraph = Paragraph::new(log_text.clone())
             .block(Block::default().title("Log").borders(Borders::ALL))
             .wrap(Wrap { trim: true });
-        let block = Block::default().title("Reactor core").borders(Borders::ALL);
         let tui_command_text = Paragraph::new(command_text.concat())
             .block(Block::default().title("Command").borders(Borders::ALL));
         let block_2 = Block::default().title("Menu").borders(Borders::ALL);
@@ -150,7 +150,6 @@ fn main() -> Result<(), io::Error> {
         let height = draw(
             &mut terminal,
             tui_command_text,
-            block,
             block_2,
             &mut mainstruct,
             log_paragraph.clone(),

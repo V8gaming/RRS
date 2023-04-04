@@ -1,8 +1,6 @@
-use std::fmt::format;
-
 use rayon::prelude::*;
 
-use crate::{main, structs::MainStruct};
+use crate::structs::MainStruct;
 use rand::seq::SliceRandom;
 
 pub fn interpolate_position(mainstruct: &mut MainStruct) {

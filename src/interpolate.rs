@@ -11,7 +11,7 @@ pub fn interpolate_position(mainstruct: &mut MainStruct) {
             true => {
                 if rod.absorber_rod_position < rod.set_point {
                     rod.absorber_rod_position += mainstruct.core.speed_setpoint;
-                } else if rod.absorber_rod_position > (rod.set_point + 1.0) {
+                } else if rod.absorber_rod_position > (rod.set_point + mainstruct.core.speed_setpoint) {
                     rod.absorber_rod_position -= mainstruct.core.speed_setpoint;
                 } else {
                     rod.absorber_rod_position = rod.set_point;

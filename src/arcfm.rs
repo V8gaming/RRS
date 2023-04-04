@@ -1,6 +1,5 @@
-use std::collections::{hash_map, HashMap};
-use std::fs::File;
-use std::io::{Stdout, Write};
+use std::collections::HashMap;
+use std::io::Stdout;
 
 use crate::structs::MainStruct;
 use crate::svg::render_svg;
@@ -9,7 +8,7 @@ use regex::Regex;
 use tui::backend::CrosstermBackend;
 use tui::layout::{Constraint, Direction, Layout, Rect};
 use tui::style::{Color, Style};
-use tui::text::{Span, Spans, Text};
+use tui::text::{Spans, Text};
 use tui::widgets::GraphType::Line as OtherLine;
 use tui::widgets::{Axis, Block, Borders, Chart, Dataset, Paragraph};
 use tui::{symbols, Frame};
@@ -180,10 +179,10 @@ pub fn fuel_rod_svg(
 
     let abs_rod_pos = mainstruct.absorber_rods[pos.0][pos.0].absorber_rod_position / 2.0 + 15.0;
     let absorber_rod = format!(
-        r#"<path d="M 50.000 10.000 L 50.000 {}.000" style="stroke: rgb(0, 0, 0); stroke-width: 1; fill: rgb(25, 117, 80);" />"#,
+        r#"<path d="M 50.000 10.000 L 50.000 {}.000" style="stroke: rgb(0, 0, 0); stroke-width: 1; fill: none;" />"#,
         abs_rod_pos
     );
-    let fuel_rod_container = r#"<rect x="37" y="25" width="25" height="60" style="fill: none; stroke-width: 3; stroke: rgb(0,0,0);" />"#;
+    let fuel_rod_container = r#"<rect x="37" y="25" width="25" height="60" style="fill: rgb(255, 0, 0); stroke-width: 3; stroke: rgb(0,0,0);" />"#;
     let mut fuel_rod_svg = String::new();
     fuel_rod_svg.push_str(header_1);
     fuel_rod_svg.push_str(header_2);
@@ -195,49 +194,73 @@ pub fn fuel_rod_svg(
     let mut hash_map: HashMap<usize, (Vec<(f64, f64)>, String, bool)> = HashMap::new();
     render_svg(fuel_rod_svg, ratio, mainstruct, &mut hash_map);
     let mut datasets = Vec::new();
-
+    let re = Regex::new(r"stroke:\s*rgb\((\d+),\s*(\d+),\s*(\d+)\);").unwrap();
+    let bg_re = Regex::new(r"fill:\s*rgb\((\d+),\s*(\d+),\s*(\d+)\);").unwrap();
     for i in hash_map.values() {
-        let re = Regex::new(r"stroke:\s*rgb\((\d+),\s*(\d+),\s*(\d+)\);").unwrap();
-        let bg_re = Regex::new(r"fill:\s*rgb\((\d+),\s*(\d+),\s*(\d+)\);").unwrap();
-        //mainstruct.data.log.push(format!("{:?}",bg_re.captures_iter(&i.1).collect::<Vec<_>>()));
-        let bg_color = fill_color_check(bg_re, i);
         if i.2 {
+            let bg_color = Color::Rgb(
+                bg_re
+                    .captures(&i.1)
+                    .unwrap()
+                    .get(1)
+                    .unwrap()
+                    .as_str()
+                    .parse::<u8>()
+                    .unwrap(),
+                bg_re
+                    .captures(&i.1)
+                    .unwrap()
+                    .get(1)
+                    .unwrap()
+                    .as_str()
+                    .parse::<u8>()
+                    .unwrap(),
+                bg_re
+                    .captures(&i.1)
+                    .unwrap()
+                    .get(1)
+                    .unwrap()
+                    .as_str()
+                    .parse::<u8>()
+                    .unwrap());
+            let dataset = Dataset::default()
+                .data(&i.0)
+                .marker(symbols::Marker::ExtraBlock(symbols::Block::FULL))
+                .graph_type(OtherLine)
+                .style(Style::default().fg(bg_color));
+            datasets.push(dataset);
+
+        } else {
+            let color = Color::Rgb(
+                re.captures(&i.1)
+                    .unwrap()
+                    .get(1)
+                    .unwrap()
+                    .as_str()
+                    .parse::<u8>()
+                    .unwrap(),
+                re.captures(&i.1)
+                    .unwrap()
+                    .get(2)
+                    .unwrap()
+                    .as_str()
+                    .parse::<u8>()
+                    .unwrap(),
+                re.captures(&i.1)
+                    .unwrap()
+                    .get(3)
+                    .unwrap()
+                    .as_str()
+                    .parse::<u8>()
+                    .unwrap(),
+            );
             let dataset = Dataset::default()
                 .data(&i.0)
                 .marker(symbols::Marker::Braille)
                 .graph_type(OtherLine)
-                .style(Style::default().fg(bg_color.unwrap()));
+                .style(Style::default().fg(color));
             datasets.push(dataset);
         }
-        let color = Color::Rgb(
-            re.captures(&i.1)
-                .unwrap()
-                .get(1)
-                .unwrap()
-                .as_str()
-                .parse::<u8>()
-                .unwrap(),
-            re.captures(&i.1)
-                .unwrap()
-                .get(2)
-                .unwrap()
-                .as_str()
-                .parse::<u8>()
-                .unwrap(),
-            re.captures(&i.1)
-                .unwrap()
-                .get(3)
-                .unwrap()
-                .as_str()
-                .parse::<u8>()
-                .unwrap(),
-        );
-        let dataset = Dataset::default()
-            .data(&i.0)
-            .marker(symbols::Marker::Braille)
-            .graph_type(OtherLine)
-            .style(Style::default().fg(color));
-        datasets.push(dataset);
     }
     let fuel_rod = Chart::new(datasets)
         .x_axis(
@@ -295,38 +318,7 @@ pub fn fuel_rod_svg(
     frame.render_widget(fuel_rod, vert_alignment[1]);
 }
 
-fn fill_color_check(bg_re: Regex, i: &(Vec<(f64, f64)>, String, bool)) -> Option<Color> {
-    if bg_re.captures(&i.1).is_some() {
-        return Some(Color::Rgb(
-            bg_re
-                .captures(&i.1)
-                .unwrap()
-                .get(1)
-                .unwrap()
-                .as_str()
-                .parse::<u8>()
-                .unwrap(),
-            bg_re
-                .captures(&i.1)
-                .unwrap()
-                .get(1)
-                .unwrap()
-                .as_str()
-                .parse::<u8>()
-                .unwrap(),
-            bg_re
-                .captures(&i.1)
-                .unwrap()
-                .get(1)
-                .unwrap()
-                .as_str()
-                .parse::<u8>()
-                .unwrap(),
-        ));
-    } else {
-        return None;
-    }
-}
+
 pub fn temperature(mainstruct: &mut MainStruct, width: i32, height: i32) {
     let MIN = 0.0;
     let MAX = 100.0;

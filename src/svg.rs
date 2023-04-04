@@ -1,6 +1,7 @@
-use std::{collections::HashMap, f64::consts::PI, fs};
+use std::{collections::HashMap, f64::consts::PI, fs::{self, File}, io::BufWriter};
 
 use lazy_static::lazy_static;
+use std::io::Write;
 use regex::Regex;
 
 use crate::structs::MainStruct;
@@ -13,7 +14,6 @@ pub fn render_svg(
     mainstruct: &mut MainStruct,
     hash_map: &mut HashMap<usize, (Vec<(f64, f64)>, String, bool)>,
 ) {
-    let mut buf = String::new();
     let mut f = String::new();
     if svg.ends_with(".svg") {
         f = fs::read_to_string(svg).unwrap();
@@ -142,7 +142,7 @@ pub fn render_svg(
                     let y = variables.1.parse::<f64>().unwrap() / (view_box[1] / 100.0);
                     let width = variables.2.parse::<f64>().unwrap() / (view_box[0] / 100.0);
                     let height = variables.3.parse::<f64>().unwrap() / (view_box[1] / 100.0);
-
+                    let style = variables.4.to_owned();
                     hash_map.insert(
                         len + 1,
                         (
@@ -157,6 +157,23 @@ pub fn render_svg(
                             false,
                         ),
                     );
+                    let mut fill = Vec::new();
+                    if FILL_RE.is_match(&style) {
+                        for i in (x as usize)..(x+width) as usize {
+                            for j in (y as usize)..(y+height) as usize {
+                                fill.push((i as f64, j as f64));
+                            }
+                        }
+                    }
+                    hash_map.insert(
+                        hash_map.len(), 
+                        (
+                            fill,
+                            style,
+                            true,
+                        ),
+                
+                );
                 }
             }
             _ => {}
@@ -190,8 +207,7 @@ fn draw_path(
     style: &str,
 ) -> (Vec<(f64, f64)>, Option<Vec<(f64, f64)>>) {
     let mut points = Vec::new();
-    let mut fill: Vec<(f64, f64)> = Vec::new();
-    let mut fill_bool = false;
+
     let x_scale = view_box[0] / 100.0;
     let y_scale = view_box[1] / 100.0;
 
@@ -320,7 +336,7 @@ fn draw_path(
                     if whitelist.contains(&prev_command) {
                         // first control point is reflection of second control point on the previous command relative to the current point
                         let data = prev_match.split(", ").collect::<Vec<&str>>();
-                        mainstruct.data.log.push(format!("data: {:?}", data));
+                        //mainstruct.data.log.push(format!("data: {:?}", data));
                         control_point_1_x =
                             prev_point.0 + (prev_point.0 - data[3].parse::<f64>().unwrap());
                         control_point_1_y =
@@ -457,33 +473,35 @@ fn draw_path(
     let x_points: Vec<f64> = points.iter().map(|x| x.0).collect();
     let y_points: Vec<f64> = points.iter().map(|x| x.1).collect();
     if FILL_RE.is_match(style) {
-        let x_min = x_points
+        let x_min: usize = *x_points
             .iter()
             .min_by(|a, b| a.partial_cmp(b).unwrap())
-            .unwrap();
-        let x_max = x_points
+            .unwrap() as usize + 1;
+        let x_max: usize = *x_points
             .iter()
             .max_by(|a, b| a.partial_cmp(b).unwrap())
-            .unwrap();
-        let y_min = y_points
+            .unwrap() as usize;
+        let y_min: usize = *y_points
             .iter()
             .min_by(|a, b| a.partial_cmp(b).unwrap())
-            .unwrap();
-        let y_max = y_points
+            .unwrap() as usize + 1;
+        let y_max: usize = *y_points
             .iter()
             .max_by(|a, b| a.partial_cmp(b).unwrap())
-            .unwrap();
-        //mainstruct.data.log.push(format!("{}, {}, {}, {}", x_min, x_max, y_min, y_max));
-        let fill: Vec<(f64, f64)> = (0..100)
-            .flat_map(|i| (0..100).map(move |j| (i as f64, j as f64)))
-            .filter_map(|(i, j)| {
-                if (i > *x_min) && (i < *x_max) && (j > *y_min) && (j < *y_max) {
-                    Some((i, j))
-                } else {
-                    None
-                }
-            })
-            .collect();
+            .unwrap() as usize;
+        let mut fill: Vec<(f64, f64)> = Vec::new();
+        mainstruct.data.log.push(format!(
+            "x_min: {}, x_max: {}, y_min: {}, y_max: {}",
+            x_min, x_max, y_min, y_max
+        ));
+        for i in x_min..x_max {
+            for j in y_min..y_max {
+                fill.push((i as f64, j as f64));
+            }
+        }
+        let mut f = File::create("fill.txt").unwrap();
+        writeln!(f, "{:?}", fill).unwrap();
+
         return (points, Some(fill));
     } else {
         return (points, None);

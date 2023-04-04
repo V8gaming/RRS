@@ -1,10 +1,12 @@
 [![BuildNightly](https://github.com/V8gaming/RBMK-1000/actions/workflows/rust.yml/badge.svg?branch=master)](https://github.com/V8gaming/RBMK-1000/actions/workflows/rust.yml)
-# RMBK-1000 Simulator
-This a a recreation of the RBMK-1000 reactor from Chernobyl: the legacy continues.
+# RRS: Rust Reactor Simulation
+
+RRS (Rust Reactor Sim) is a simulation game that puts you in control of a virtual RBMK-1000 nuclear reactor, inspired by the events of the Chernobyl disaster. Test your engineering skills and manage the reactor to prevent a meltdown, all while dealing with the legacy of Chernobyl's aftermath.
 ![](./resources/preview.png)
+
 ## Introduction
 
-RBMK-1000 Simulator is a tool for simulating the behavior of the RBMK-1000 reactor used at the Chernobyl Nuclear Power Plant. The simulator allows users to explore different scenarios and experiment with the control of the reactor, without the risk of a real-life disaster. By providing a safe and controlled environment for testing, RBMK-1000 Simulator can help improve the safety and reliability of nuclear power plants worldwide.
+RRS (Rust Reactor Sim) is an open-source simulation software inspired by the RBMK-1000 reactor of the Chernobyl Nuclear Power Plant. With RRS, you can explore the legacy of Chernobyl and learn about reactor physics in a safe and educational way.
 
 ## Commands
 
@@ -23,6 +25,7 @@ RBMK-1000 Simulator is a tool for simulating the behavior of the RBMK-1000 react
 
 ## Dev Commands
 * dev sp (position)- change the position of the absorber rods to position.
+* dev sp speed (number) - set the speed of the absorber rod change.
 
 ## Simulation levels
 ## Level 0
@@ -95,3 +98,5 @@ __NEEDS RATIO FIXING & RELATIVE PATHS__
     - [ ] linecap
     - [ ] linejoin
 
+## Changes to tui-rs
+added FULL to marker enum. and in cavas/mod.rs

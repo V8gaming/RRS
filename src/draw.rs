@@ -100,7 +100,7 @@ pub fn draw_turbine(
     let square_data = draw_rectangle(20.0, 20.0, ratio);
 
     let circle_data = draw_circle(20.0, ratio);
-         
+
     let square = Dataset::default()
         .data(&square_data)
         .marker(symbols::Marker::Braille)
@@ -113,7 +113,7 @@ pub fn draw_turbine(
         .style(Style::default().fg(Color::Red))
         .data(&[(50.0_f64, 50.0_f64)])
         .marker(symbols::Marker::Braille)
-        .graph_type(tui::widgets::GraphType::Scatter); 
+        .graph_type(tui::widgets::GraphType::Scatter);
     */
     let mut hash_map: HashMap<usize, (Vec<(f64, f64)>, String, bool)> = HashMap::new();
     render_svg(

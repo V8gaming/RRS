@@ -1,8 +1,12 @@
-use std::{collections::HashMap, f64::consts::PI, fs::{self, File}};
+use std::{
+    collections::HashMap,
+    f64::consts::PI,
+    fs::{self, File},
+};
 
 use lazy_static::lazy_static;
-use std::io::Write;
 use regex::Regex;
+use std::io::Write;
 
 use crate::structs::MainStruct;
 lazy_static! {
@@ -30,11 +34,11 @@ pub fn render_svg(
             xml::reader::XmlEvent::StartElement {
                 name,
                 attributes,
-                namespace,
+                namespace: _,
             } => {
                 if name.local_name == "svg" {
                     let viewbox = &attributes[0].value;
-                    let viewbox_data = viewbox.split(" ").collect::<Vec<&str>>();
+                    let viewbox_data = viewbox.split(' ').collect::<Vec<&str>>();
                     let width = viewbox_data[2].parse::<f64>().unwrap();
                     let height = viewbox_data[3].parse::<f64>().unwrap();
                     view_box.push(width);
@@ -160,24 +164,23 @@ pub fn render_svg(
                     );
                     let mut fill = Vec::new();
                     if FILL_RE.is_match(&style) {
-                        for i in (x as usize)..(x+width) as usize {
-                            for j in (y as usize)..(y+height) as usize {
+                        for i in (x as usize)..(x + width) as usize {
+                            for j in (y as usize)..(y + height) as usize {
                                 fill.push((i as f64, j as f64));
                             }
                         }
                     }
-                    hash_map.insert(
-                        hash_map.len(), 
-                        (
-                            fill,
-                            style,
-                            true,
-                        ),
-                
-                );
+                    hash_map.insert(hash_map.len(), (fill, style, true));
                 }
             }
-            _ => {}
+            xml::reader::XmlEvent::StartDocument { version, encoding, standalone } => continue,
+            xml::reader::XmlEvent::EndDocument => continue,
+            xml::reader::XmlEvent::ProcessingInstruction { name, data } => continue,
+            xml::reader::XmlEvent::EndElement { name } => continue,
+            xml::reader::XmlEvent::CData(_) => continue,
+            xml::reader::XmlEvent::Comment(_) => continue,
+            xml::reader::XmlEvent::Characters(_) => continue,
+            xml::reader::XmlEvent::Whitespace(_) => continue,
         }
     }
 
@@ -211,8 +214,6 @@ fn draw_path(
 
     let x_scale = view_box[0] / 100.0;
     let y_scale = view_box[1] / 100.0;
-
-
 
     let mut start = (0.0, 0.0);
     let mut prev_point = (0.0, 0.0);
@@ -283,7 +284,7 @@ fn draw_path(
                             &(end_point_x, end_point_y),
                             t,
                             ratio,
-                            Some(transform_str.clone()),
+                            Some(&(*transform_str)),
                             (x_scale, y_scale),
                         );
                         points.push(point);
@@ -312,7 +313,7 @@ fn draw_path(
                             &(end_point_x, end_point_y),
                             t,
                             ratio,
-                            Some(transform_str.clone()),
+                            Some(&(*transform_str)),
                             (x_scale, y_scale),
                         );
                         points.push(point);
@@ -360,7 +361,7 @@ fn draw_path(
                             &(end_point_x, end_point_y),
                             t,
                             ratio,
-                            Some(transform_str.clone()),
+                            Some(&(*transform_str)),
                             (x_scale, y_scale),
                         );
                         points.push(point);
@@ -395,7 +396,7 @@ fn draw_path(
                             &(end_point_x, end_point_y),
                             t,
                             ratio,
-                            Some(transform_str.clone()),
+                            Some(&(*transform_str)),
                             (x_scale, y_scale),
                         );
                         points.push(point);
@@ -423,7 +424,7 @@ fn draw_path(
                             &(end_point_x, end_point_y),
                             t,
                             ratio,
-                            Some(transform_str.clone()),
+                            Some(&(*transform_str)),
                             (x_scale, y_scale),
                         );
                         points.push(point);
@@ -477,7 +478,8 @@ fn draw_path(
         let x_min: usize = *x_points
             .iter()
             .min_by(|a, b| a.partial_cmp(b).unwrap())
-            .unwrap() as usize + 1;
+            .unwrap() as usize
+            + 1;
         let x_max: usize = *x_points
             .iter()
             .max_by(|a, b| a.partial_cmp(b).unwrap())
@@ -485,7 +487,8 @@ fn draw_path(
         let y_min: usize = *y_points
             .iter()
             .min_by(|a, b| a.partial_cmp(b).unwrap())
-            .unwrap() as usize + 1;
+            .unwrap() as usize
+            + 1;
         let y_max: usize = *y_points
             .iter()
             .max_by(|a, b| a.partial_cmp(b).unwrap())

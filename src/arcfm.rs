@@ -222,14 +222,14 @@ pub fn fuel_rod_svg(
                     .unwrap()
                     .as_str()
                     .parse::<u8>()
-                    .unwrap());
+                    .unwrap(),
+            );
             let dataset = Dataset::default()
                 .data(&i.0)
                 .marker(symbols::Marker::ExtraBlock(symbols::Block::FULL))
                 .graph_type(OtherLine)
                 .style(Style::default().fg(bg_color));
             datasets.push(dataset);
-
         } else {
             let color = Color::Rgb(
                 re.captures(&i.1)
@@ -317,7 +317,6 @@ pub fn fuel_rod_svg(
 
     frame.render_widget(fuel_rod, vert_alignment[1]);
 }
-
 
 pub fn temperature(mainstruct: &mut MainStruct, width: i32, height: i32) {
     let MIN = 0.0;

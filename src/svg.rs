@@ -1,4 +1,4 @@
-use std::{collections::HashMap, f64::consts::PI, fs::{self, File}, io::BufWriter};
+use std::{collections::HashMap, f64::consts::PI, fs::{self, File}};
 
 use lazy_static::lazy_static;
 use std::io::Write;
@@ -7,6 +7,7 @@ use regex::Regex;
 use crate::structs::MainStruct;
 lazy_static! {
     static ref FILL_RE: Regex = Regex::new(r"fill:\s*rgb\((\d+),\s*(\d+),\s*(\d+)\);").unwrap();
+    static ref RE: Regex = Regex::new(r"[A-Z]\s*((?:\d+\.\d+\s+)*\d+\.\d+)*").unwrap();
 }
 pub fn render_svg(
     svg: String,
@@ -211,14 +212,14 @@ fn draw_path(
     let x_scale = view_box[0] / 100.0;
     let y_scale = view_box[1] / 100.0;
 
-    let re = Regex::new(r"[A-Z]\s*((?:\d+\.\d+\s+)*\d+\.\d+)*").unwrap();
+
 
     let mut start = (0.0, 0.0);
     let mut prev_point = (0.0, 0.0);
     let mut prev_command = "";
     let mut prev_match = "".to_string();
 
-    for i in split_keep(&re, &strings) {
+    for i in split_keep(&RE, &strings) {
         //mainstruct.data.log.push(format!("i: {:?}", i));
         if i == " " {
             continue;

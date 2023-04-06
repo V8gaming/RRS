@@ -4,7 +4,7 @@ use rayon::prelude::*;
 use regex::{Regex, RegexSet};
 
 lazy_static! {
-    static ref REGEX_SET: RegexSet = RegexSet::new(&[
+    static ref REGEX_SET: RegexSet = RegexSet::new([
         r"insert rod (\d+)",
         r"scram",
         r"insert rods",
@@ -21,6 +21,9 @@ lazy_static! {
         r"drain valve (\d+)",
         r"select rod (\d+)",
         r"dev sp speed (\d+)",
+        r"select (\d+)",
+        r"enter",
+        r"exit",
     ])
     .unwrap();
 }
@@ -125,6 +128,7 @@ pub fn send_command(command: &str, mainstruct: &mut MainStruct, height: u16) {
                     "hold rods - hold the rods in place",
                     "drain valve <position> - change the position of the drain valve to position",
                     "select rod <rod number> - select a rod to view its data",
+                    "select <number> - select a checklist item",
                 ];
                 let re = Regex::new(r"help (\d+)").unwrap();
                 let cap = re.captures(command).unwrap();
@@ -216,6 +220,18 @@ pub fn send_command(command: &str, mainstruct: &mut MainStruct, height: u16) {
                 let cap = re.captures(command).unwrap();
                 let speed = cap[1].parse::<f32>().unwrap();
                 mainstruct.core.speed_setpoint = speed;
+            }
+            16 => {
+                let re = Regex::new(r"select (\d+)").unwrap();
+                let cap = re.captures(command).unwrap();
+                let item = cap[1].parse::<usize>().unwrap();
+                mainstruct.data.checklist_selected = item;
+            }
+            17 => {
+                mainstruct.data.text_input = false;
+            }
+            18 => {
+                mainstruct.data.text_input = true;
             }
 
             _ => {

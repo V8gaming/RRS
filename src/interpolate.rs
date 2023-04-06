@@ -51,7 +51,7 @@ pub fn neutron_rate(mainstruct: &mut MainStruct) {
             const MAX: f32 = 15.0; // 100% neutron flux rate
             const MIN: f32 = -15.0; // 0% neutron flux rate
             rod.neutron_rate =
-                (MAX - MIN) * (1.0 - rod.absorber_rod_position as f32 / 100.0) + MIN as f32;
+                (MAX - MIN) * (1.0 - rod.absorber_rod_position / 100.0) + MIN;
         });
     });
     //mainstruct.data.log.push(format!("Neutron rate: {}", mainstruct.data.neutron_rate));
@@ -75,7 +75,7 @@ pub fn neutron_flux(mainstruct: &mut MainStruct) {
         .map(|row| {
             row.par_iter()
                 .map(|rod| rod.absorber_rod_position)
-                .sum::<f32>() as f32
+                .sum::<f32>()
         })
         .sum::<f32>()
         / (mainstruct.core.width * mainstruct.core.height) as f32;
@@ -83,7 +83,7 @@ pub fn neutron_flux(mainstruct: &mut MainStruct) {
     //mainstruct.data.log.push(format!("average rod position: {}", average_rod_position));
 
     let normalized_flux = match average_rod_position as i32 {
-        0..=100 => (MAX - MIN) * (1.0 - average_rod_position as f32 / 100.0) + MIN,
+        0..=100 => (MAX - MIN) * (1.0 - average_rod_position / 100.0) + MIN,
         _ => 0.0, // handle invalid input
     };
 
@@ -98,7 +98,7 @@ pub fn fuel_temperature(mainstruct: &mut MainStruct) {
     mainstruct.absorber_rods.par_iter_mut().for_each(|row| {
         row.par_iter_mut().for_each(|rod| {
             rod.fuel_temperature =
-                (MAX - MIN) * (1.0 - rod.absorber_rod_position as f32 / 100.0) + MIN as f32;
+                (MAX - MIN) * (1.0 - rod.absorber_rod_position / 100.0) + MIN;
         });
     });
     let thermal_power = mainstruct
@@ -115,7 +115,7 @@ pub fn fuel_temperature(mainstruct: &mut MainStruct) {
     const TH_MIN: f32 = 0.0;
     // 110% is FP
     let normalized_thermal_power =
-        (TH_MAX - TH_MIN) * (thermal_power as f32 / 600.0) + TH_MIN as f32;
+        (TH_MAX - TH_MIN) * (thermal_power / 600.0) + TH_MIN;
     //mainstruct.data.log.push(format!("Thermal power: {}", normalized_thermal_power));
     mainstruct.core.thermal_power = normalized_thermal_power;
 

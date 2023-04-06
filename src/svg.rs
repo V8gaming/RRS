@@ -8,7 +8,7 @@ use lazy_static::lazy_static;
 use regex::Regex;
 use std::io::Write;
 
-use crate::structs::MainStruct;
+use crate::{structs::MainStruct, arcfm::SvgPoints};
 lazy_static! {
     static ref FILL_RE: Regex = Regex::new(r"fill:\s*rgb\((\d+),\s*(\d+),\s*(\d+)\);").unwrap();
     static ref RE: Regex = Regex::new(r"[A-Z]\s*((?:\d+\.\d+\s+)*\d+\.\d+)*").unwrap();
@@ -17,7 +17,7 @@ pub fn render_svg(
     svg: String,
     ratio: f64,
     mainstruct: &mut MainStruct,
-    hash_map: &mut HashMap<usize, (Vec<(f64, f64)>, String, bool)>,
+    hash_map: &mut HashMap<usize, SvgPoints>,
 ) {
     let mut f = String::new();
     if svg.ends_with(".svg") {
@@ -173,10 +173,10 @@ pub fn render_svg(
                     hash_map.insert(hash_map.len(), (fill, style, true));
                 }
             }
-            xml::reader::XmlEvent::StartDocument { version, encoding, standalone } => continue,
+            xml::reader::XmlEvent::StartDocument { version: _, encoding: _, standalone: _ } => continue,
             xml::reader::XmlEvent::EndDocument => continue,
-            xml::reader::XmlEvent::ProcessingInstruction { name, data } => continue,
-            xml::reader::XmlEvent::EndElement { name } => continue,
+            xml::reader::XmlEvent::ProcessingInstruction { name: _, data: _ } => continue,
+            xml::reader::XmlEvent::EndElement { name: _ } => continue,
             xml::reader::XmlEvent::CData(_) => continue,
             xml::reader::XmlEvent::Comment(_) => continue,
             xml::reader::XmlEvent::Characters(_) => continue,
@@ -202,6 +202,7 @@ pub fn render_svg(
         }
     }
 }
+pub type Points = (Vec<(f64, f64)>, Option<Vec<(f64, f64)>>);
 fn draw_path(
     strings: String,
     view_box: Vec<f64>,
@@ -209,7 +210,7 @@ fn draw_path(
     ratio: f64,
     transform_str: &str,
     style: &str,
-) -> (Vec<(f64, f64)>, Option<Vec<(f64, f64)>>) {
+) -> Points {
     let mut points = Vec::new();
 
     let x_scale = view_box[0] / 100.0;
@@ -229,7 +230,7 @@ fn draw_path(
             points.push(start);
             continue;
         } else {
-            let data = i.split(" ").collect::<Vec<&str>>();
+            let data = i.split(' ').collect::<Vec<&str>>();
             //println!("{:?}", data);
             let command = data[0];
 
@@ -239,7 +240,7 @@ fn draw_path(
                     let y = data[2].parse::<f64>().unwrap();
                     let mut x = x / x_scale;
                     let mut y = y / y_scale;
-                    if Some(transform_str) == None {
+                    if Some(transform_str).is_none() {
                         continue;
                     } else {
                         let transformed_points = transform(x, y, transform_str, (x_scale, y_scale));
@@ -284,7 +285,7 @@ fn draw_path(
                             &(end_point_x, end_point_y),
                             t,
                             ratio,
-                            Some(&(*transform_str)),
+                            Some(transform_str),
                             (x_scale, y_scale),
                         );
                         points.push(point);
@@ -292,8 +293,7 @@ fn draw_path(
                     prev_point = (end_point_x, end_point_y);
                     prev_command = command;
                     prev_match = format!(
-                        "{}, {}, {}, {}, {}",
-                        command, control_point_x, control_point_y, end_point_x, end_point_y
+                        "{command}, {control_point_x}, {control_point_y}, {end_point_x}, {end_point_y}"
                     );
                 }
                 "C" => {
@@ -313,7 +313,7 @@ fn draw_path(
                             &(end_point_x, end_point_y),
                             t,
                             ratio,
-                            Some(&(*transform_str)),
+                            Some(transform_str),
                             (x_scale, y_scale),
                         );
                         points.push(point);
@@ -321,14 +321,7 @@ fn draw_path(
                     prev_point = (end_point_x, end_point_y);
                     prev_command = command;
                     prev_match = format!(
-                        "{}, {}, {}, {}, {}, {}, {}",
-                        command,
-                        control_point_1_x,
-                        control_point_1_y,
-                        control_point_2_x,
-                        control_point_2_y,
-                        end_point_x,
-                        end_point_y
+                        "{command}, {control_point_1_x}, {control_point_1_y}, {control_point_2_x}, {control_point_2_y}, {end_point_x}, {end_point_y}"
                     );
                 }
                 "S" => {
@@ -361,7 +354,7 @@ fn draw_path(
                             &(end_point_x, end_point_y),
                             t,
                             ratio,
-                            Some(&(*transform_str)),
+                            Some(transform_str),
                             (x_scale, y_scale),
                         );
                         points.push(point);
@@ -377,7 +370,7 @@ fn draw_path(
                     if whitelist.contains(&prev_command) {
                         // first control point is reflection of second control point on the previous command relative to the current point
                         let data = prev_match.split(", ").collect::<Vec<&str>>();
-                        mainstruct.data.log.push(format!("data: {:?}", data));
+                        mainstruct.data.log.push(format!("data: {data:?}"));
                         control_point_x =
                             prev_point.0 + (prev_point.0 - data[1].parse::<f64>().unwrap());
                         control_point_y =
@@ -396,7 +389,7 @@ fn draw_path(
                             &(end_point_x, end_point_y),
                             t,
                             ratio,
-                            Some(&(*transform_str)),
+                            Some(transform_str),
                             (x_scale, y_scale),
                         );
                         points.push(point);
@@ -495,20 +488,19 @@ fn draw_path(
             .unwrap() as usize;
         let mut fill: Vec<(f64, f64)> = Vec::new();
         mainstruct.data.log.push(format!(
-            "x_min: {}, x_max: {}, y_min: {}, y_max: {}",
-            x_min, x_max, y_min, y_max
+            "x_min: {x_min}, x_max: {x_max}, y_min: {y_min}, y_max: {y_max}"
         ));
         for i in x_min..x_max {
             for j in y_min..y_max {
                 fill.push((i as f64, j as f64));
             }
         }
-        let mut f = File::create("fill.txt").unwrap();
-        writeln!(f, "{:?}", fill).unwrap();
+        //let mut f = File::create("fill.txt").unwrap();
+        //writeln!(f, "{fill:?}").unwrap();
 
-        return (points, Some(fill));
+        (points, Some(fill))
     } else {
-        return (points, None);
+        (points, None)
     }
 }
 
@@ -614,17 +606,18 @@ fn elliptical_arc(
     let x = cx + rx * t.cos();
     let y = cy + ry * t.sin();
     // if transform exists use transform, else return x,y
-    if transform_str == None {
-        (x, y)
-    } else {
+    if transform_str.is_some() {
         transform(x, y, transform_str.unwrap(), scales)
+    } else {
+        (x, y)
     }
+
 }
 fn transform(x: f64, y: f64, transform: &str, scales: (f64, f64)) -> (f64, f64) {
     if transform.starts_with("matrix") {
         //matrix(0.963456, 0.267867, -0.267867, 0.963456, -67.327988, 51.384823)
         let data = transform.strip_prefix("matrix(").unwrap();
-        let data = data.strip_suffix(")").unwrap();
+        let data = data.strip_suffix(')').unwrap();
         let data = data.split(", ").collect::<Vec<&str>>();
         let a = data[0].parse::<f64>().unwrap();
         let b = data[1].parse::<f64>().unwrap();
@@ -634,40 +627,40 @@ fn transform(x: f64, y: f64, transform: &str, scales: (f64, f64)) -> (f64, f64) 
         let f = data[5].parse::<f64>().unwrap();
         let x = x * a + y * c + e;
         let y = x * b + y * d + f;
-        return (x, y);
+        (x, y)
     } else if transform.starts_with("translate") {
         let data = transform.strip_prefix("translate(").unwrap();
-        let data = data.strip_suffix(")").unwrap();
-        let data = data.split(" ").collect::<Vec<&str>>();
+        let data = data.strip_suffix(')').unwrap();
+        let data = data.split(' ').collect::<Vec<&str>>();
         let x = x + data[0].parse::<f64>().unwrap() / scales.0;
         let y = y + data[1].parse::<f64>().unwrap() / scales.1;
         return (x, y);
     } else if transform.starts_with("scale") {
         let data = transform.strip_prefix("scale(").unwrap();
-        let data = data.strip_suffix(")").unwrap();
-        let data = data.split(" ").collect::<Vec<&str>>();
+        let data = data.strip_suffix(')').unwrap();
+        let data = data.split(' ').collect::<Vec<&str>>();
         let x = x * data[0].parse::<f64>().unwrap();
         let y = y * data[1].parse::<f64>().unwrap();
         return (x, y);
     } else if transform.starts_with("rotate") {
         let data = transform.strip_prefix("rotate(").unwrap();
-        let data = data.strip_suffix(")").unwrap();
-        let data = data.split(" ").collect::<Vec<&str>>();
+        let data = data.strip_suffix(')').unwrap();
+        let data = data.split(' ').collect::<Vec<&str>>();
         let angle = data[0].parse::<f64>().unwrap();
         let x = x * angle.cos() - y * angle.sin();
         let y = x * angle.sin() + y * angle.cos();
         return (x, y);
     } else if transform.starts_with("skewX") {
         let data = transform.strip_prefix("skewX(").unwrap();
-        let data = data.strip_suffix(")").unwrap();
-        let data = data.split(" ").collect::<Vec<&str>>();
+        let data = data.strip_suffix(')').unwrap();
+        let data = data.split(' ').collect::<Vec<&str>>();
         let angle = data[0].parse::<f64>().unwrap();
         let x = x + y * angle.tan();
         return (x, y);
     } else if transform.starts_with("skewY") {
         let data = transform.strip_prefix("skewY(").unwrap();
-        let data = data.strip_suffix(")").unwrap();
-        let data = data.split(" ").collect::<Vec<&str>>();
+        let data = data.strip_suffix(')').unwrap();
+        let data = data.split(' ').collect::<Vec<&str>>();
         let angle = data[0].parse::<f64>().unwrap();
         let y = y + x * angle.tan();
         return (x, y);

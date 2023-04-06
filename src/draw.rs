@@ -1,7 +1,9 @@
-use crate::arcfm::{fuel_rod_svg, temperature};
+use crate::arcfm::{fuel_rod_svg, temperature, SvgPoints};
 use crate::svg::render_svg;
 use crate::{arcfm::fuel_rod_table, structs::MainStruct};
 use regex::Regex;
+use tui::style::Modifier;
+use tui::widgets::{List, ListItem, ListState};
 use std::{
     collections::HashMap,
     io::{self, Stdout},
@@ -55,12 +57,15 @@ pub fn draw(
         frame.render_widget(tui_command_text, chunks[0]);
 
         //println!("{}", chunks_2[0].height);
+        let tabs = vec![
+            Spans::from("Command"),
+            Spans::from("Log"),
+            Spans::from("Graph"),
+            Spans::from("Checklist"),
+        ];
+        mainstruct.data.left_tab_length = tabs.len() as i32;
 
-        let left_tabs = Tabs::new(vec![
-            Spans::from("Core"),
-            Spans::from("Rod"),
-            Spans::from("Turbine"),
-        ])
+        let left_tabs = Tabs::new(tabs)
         .block(
             Block::default()
                 .title("Graphical renderer")
@@ -78,6 +83,7 @@ pub fn draw(
             0 => fuel_rod_table(5, 5, chunks_3[0], frame, mainstruct),
             1 => fuel_rod_svg(mainstruct, frame, chunks_3[0]),
             2 => draw_turbine(mainstruct, frame, chunks_3[0]),
+            3 => checklist(mainstruct, frame, chunks_3[0]),
             _ => {}
         }
 
@@ -86,7 +92,7 @@ pub fn draw(
         frame.render_widget(log_text, chunks_2[1]);
     });
     drop(draw);
-    return (Ok(()), chunks_2[0].height);
+    (Ok(()), chunks_2[0].height)
 }
 pub fn draw_turbine(
     mainstruct: &mut MainStruct,
@@ -115,7 +121,7 @@ pub fn draw_turbine(
         .marker(symbols::Marker::Braille)
         .graph_type(tui::widgets::GraphType::Scatter);
     */
-    let mut hash_map: HashMap<usize, (Vec<(f64, f64)>, String, bool)> = HashMap::new();
+    let mut hash_map: HashMap<usize, SvgPoints> = HashMap::new();
     render_svg(
         "./resources/test.svg".to_string(),
         ratio,
@@ -179,14 +185,14 @@ fn draw_rectangle(width: f64, height: f64, ratio: f64) -> Vec<(f64, f64)> {
     let width = width / (ratio / 2.0);
     let pos_x = 100.0 / 2.0 - width / 2.0;
     let pos_y = 100.0 / 2.0 - height / 2.0;
-    let mut points = Vec::new();
-    points.push((pos_x, pos_y));
-    points.push((pos_x + width, pos_y));
-    points.push((pos_x + width, pos_y + height));
-    points.push((pos_x, pos_y + height));
-    points.push((pos_x, pos_y));
-
-    return points;
+    let points = vec![
+        (pos_x, pos_y),
+        (pos_x + width, pos_y),
+        (pos_x + width, pos_y + height),
+        (pos_x, pos_y + height),
+        (pos_x, pos_y),
+    ];
+    points
 }
 
 fn draw_circle(radius: f64, ratio: f64) -> Vec<(f64, f64)> {
@@ -198,5 +204,57 @@ fn draw_circle(radius: f64, ratio: f64) -> Vec<(f64, f64)> {
         let y = pos_y + radius * (i as f64).to_radians().sin();
         points.push((x, y));
     }
-    return points;
+    points
+}
+
+fn checklist(    
+    mainstruct: &mut MainStruct,
+    frame: &mut Frame<CrosstermBackend<Stdout>>,
+    layout: Rect,
+) {
+    let vert_centred = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Percentage(25), Constraint::Percentage(50), Constraint::Percentage(25)].as_ref())
+        .split(layout);
+    let centred = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([Constraint::Percentage(2), Constraint::Percentage(96), Constraint::Percentage(2)].as_ref())
+        .split(vert_centred[1]);
+
+    
+    let selected = mainstruct.data.checklist_selected - 1;
+    let mut list_vec: Vec<ListItem> = Vec::new();
+
+    //mainstruct.data.items[selected].0 =  mainstruct.data.items[selected].clone().0.style(Style::default().fg(Color::Yellow));
+    for (item, children, state) in mainstruct.data.items.clone().into_iter() {
+        list_vec.push(item);
+        if state {
+            for child in children {
+                list_vec.push(child);
+            }
+        }
+        
+    }
+    mainstruct.data.checklist_length = list_vec.len();
+    mainstruct.data.selected_item = list_vec[selected].clone();
+    for (i, item) in list_vec.iter_mut().enumerate() {
+        let color = if i == selected {
+            Color::Yellow
+        } else {
+            Color::White
+        };
+        *item = item.clone().style(Style::default().fg(color));
+    }
+    
+    let list = List::new(list_vec).highlight_style(
+        Style::default()
+            .bg(Color::Yellow)
+            .fg(Color::Black)
+            .add_modifier(Modifier::BOLD),
+    );
+
+    
+    frame.render_widget(list, centred[1]);
+
+
 }

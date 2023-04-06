@@ -21,9 +21,7 @@ use crate::draw::draw;
 use crate::interpolate::interpolate_position;
 use crate::structs::MainStruct;
 
-#[allow(non_snake_case)]
 mod arcfm;
-#[warn(non_snake_case)]
 mod commands;
 mod draw;
 mod interpolate;
@@ -100,7 +98,7 @@ fn main() -> Result<(), io::Error> {
                 .data(&graphs[0]),
             Dataset::default()
                 .name("Reactor Level")
-                .marker(symbols::Marker::Braille)
+                .marker(symbols::Marker::Lines(symbols::Lines::CROSS))
                 .graph_type(GraphType::Line)
                 .style(Style::default().fg(Color::Red))
                 .data(&graphs[1]),
@@ -109,7 +107,7 @@ fn main() -> Result<(), io::Error> {
                 .marker(symbols::Marker::Braille)
                 .graph_type(GraphType::Line)
                 .style(Style::default().fg(Color::Green))
-                .data(&[]),
+                .data(&[]), 
         ];
 
         let graph = Chart::new(datasets)
@@ -191,8 +189,7 @@ pub fn read_input(
                     terminal.show_cursor()?;
                     terminal.clear()?;
 
-                    return Err(io::Error::new(io::ErrorKind::Other, "Quit"));
-                } else if event.code == KeyCode::Char('c')
+                    Err(io::Error::new(io::ErrorKind::Other, "Quit"))                } else if event.code == KeyCode::Char('c')
                     && event.modifiers == event::KeyModifiers::CONTROL
                 {
                     // clear the screen
@@ -216,48 +213,68 @@ pub fn read_input(
                             return Ok(());
                         }
                         KeyCode::Enter => {
-                            send_command(command_text.concat().as_str(), mainstruct, height);
-                            //prepend the command to the previous commands
-                            previous_command.0.insert(0, command_text.clone());
-                            let blacklist = vec!["clear", "cls", "help"];
-                            if !blacklist.contains(&command_text.concat().as_str()) {
-                                mainstruct.data.log.push(command_text.concat());
+                            if mainstruct.data.text_input {
+                                send_command(command_text.concat().as_str(), mainstruct, height);
+                                //prepend the command to the previous commands
+                                previous_command.0.insert(0, command_text.clone());
+                                let blacklist = vec!["clear", "cls", "help"];
+                                if !blacklist.contains(&command_text.concat().as_str()) {
+                                    mainstruct.data.log.push(command_text.concat());
+                                }
+                                //mainstruct.data.log.push(format!("length: {}", mainstruct.data.log.len()));
+    
+                                command_text.clear();
+                            } else if let Some(item) = mainstruct.data.items.iter_mut().find(|item| item.0 == mainstruct.data.selected_item) {
+                                item.2 = !item.2;
                             }
-                            //mainstruct.data.log.push(format!("length: {}", mainstruct.data.log.len()));
 
-                            command_text.clear();
                             return Ok(());
                         }
                         KeyCode::Up => {
-                            previous_command.1 += 1;
-                            if previous_command.1 > previous_command.0.len() as i32 {
-                                previous_command.1 = previous_command.0.len() as i32;
+                            if mainstruct.data.text_input {
+                                previous_command.1 += 1;
+                                if previous_command.1 > previous_command.0.len() as i32 {
+                                    previous_command.1 = previous_command.0.len() as i32;
+                                }
+                                if previous_command.1 > 0 {
+                                    command_text.clear();
+                                    command_text.append(
+                                        &mut previous_command.0[(previous_command.1 - 1) as usize]
+                                            .clone(),
+                                    );
+                                }
+                            } else if mainstruct.data.checklist_selected > 1 {
+                                mainstruct.data.checklist_selected -= 1;
+
+                            } else {
+                                mainstruct.data.checklist_selected = 1;
                             }
-                            if previous_command.1 > 0 {
-                                command_text.clear();
-                                command_text.append(
-                                    &mut previous_command.0[(previous_command.1 - 1) as usize]
-                                        .clone(),
-                                );
-                            }
+
                             return Ok(());
                         }
                         KeyCode::Down => {
-                            previous_command.1 -= 1;
-                            if previous_command.1 < 0 {
-                                previous_command.1 = 0;
+                            if mainstruct.data.text_input {
+                                previous_command.1 -= 1;
+                                if previous_command.1 < 0 {
+                                    previous_command.1 = 0;
+                                }
+                                if previous_command.1 > 0 {
+                                    command_text.clear();
+                                    command_text.append(
+                                        &mut previous_command.0[(previous_command.1 - 1) as usize]
+                                            .clone(),
+                                    );
+                                }
+                            } else if mainstruct.data.checklist_selected < mainstruct.data.checklist_length {
+                                mainstruct.data.checklist_selected += 1;
+                            } else {
+                                mainstruct.data.checklist_selected = mainstruct.data.checklist_length;
                             }
-                            if previous_command.1 > 0 {
-                                command_text.clear();
-                                command_text.append(
-                                    &mut previous_command.0[(previous_command.1 - 1) as usize]
-                                        .clone(),
-                                );
-                            }
+
                             return Ok(());
                         }
                         KeyCode::Tab => {
-                            if mainstruct.data.left_tab_index + 1 > 2 {
+                            if mainstruct.data.left_tab_index + 1 > mainstruct.data.left_tab_length.try_into().unwrap() {
                                 mainstruct.data.left_tab_index = 0;
                             } else {
                                 mainstruct.data.left_tab_index += 1;
@@ -269,9 +286,9 @@ pub fn read_input(
                     }
                 }
             }
-            _ => return Ok(()),
+            _ => Ok(()),
         }
     } else {
-        return Ok(());
+        Ok(())
     }
 }

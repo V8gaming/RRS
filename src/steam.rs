@@ -13,7 +13,7 @@ pub fn steam(mainstruct: &mut MainStruct) {
     const SUPERHEAT: f32 = 600.0; // superheated temperature
 
     // superheat - saturation temperature at the current pressure
-    let superheat_degrees =
+    let _superheat_degrees =
         SUPERHEAT - (SATMAX - SATMIN) * mainstruct.core.steam.steam_pressure / 6.9;
 
     steam_core_turbine(mainstruct);
@@ -65,9 +65,7 @@ fn steam_turbine_outside(mainstruct: &mut MainStruct) {
 pub fn calculate_density(steam_pressure: f32) -> f32 {
     const DENMIN: f32 = 0.251560; // density of steam at 0MPa
     const DENMAX: f32 = 18.2339; // density of steam at 6.9MPa
-
-    let density = DENMIN + (DENMAX - DENMIN) * steam_pressure / 6.9;
-    density
+    DENMIN + (DENMAX - DENMIN) * steam_pressure / 6.9
 }
 pub fn calculate_flowrate(steam_pressure: f32, location_pressure: f32, drain_valve: f32) -> f32 {
     let density = calculate_density(steam_pressure);
@@ -76,8 +74,5 @@ pub fn calculate_flowrate(steam_pressure: f32, location_pressure: f32, drain_val
 
     let differential_pressure = steam_pressure - (condenser_pressure + location_pressure);
 
-    let flowrate =
-        (differential_pressure.abs() / specific_gravity).sqrt() * (drain_valve) / 10000.0;
-
-    flowrate
+    (differential_pressure.abs() / specific_gravity).sqrt() * (drain_valve) / 10000.0
 }

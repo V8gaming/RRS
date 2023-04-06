@@ -1,7 +1,7 @@
-use tui::style::Color;
+use tui::{style::Color, widgets::ListItem};
 pub struct FuelRodData {
-    FuelPellet: FuelPellet,
-    Cladding: Cladding,
+    fuel_pellet: FuelPellet,
+    cladding: Cladding,
 }
 pub struct FuelPellet {
     /// U235 and U238 composition
@@ -9,16 +9,16 @@ pub struct FuelPellet {
     /// density = g/cm^3
     /// Diameter = cm
     /// Stack_length = m
-    U_composition: UComposition,
-    OM: f32,
+    u_composition: UComposition,
+    om: f32,
     density: f32,
-    Diameter: f32,
-    Stack_length: f32,
+    diameter: f32,
+    stack_length: f32,
 }
 
 pub struct UComposition {
-    U235_composition: f32,
-    U238_composition: f32,
+    u235_composition: f32,
+    u238_composition: f32,
 }
 pub struct Cladding {
     material: String,
@@ -38,19 +38,19 @@ impl Default for Cladding {
 impl Default for UComposition {
     fn default() -> Self {
         Self {
-            U235_composition: 0.035,
-            U238_composition: 0.965,
+            u235_composition: 0.035,
+            u238_composition: 0.965,
         }
     }
 }
 impl Default for FuelPellet {
     fn default() -> Self {
         Self {
-            U_composition: UComposition::default(),
-            OM: 3.0,
+            u_composition: UComposition::default(),
+            om: 3.0,
             density: 10.7,
-            Diameter: 7.62,
-            Stack_length: 3.65,
+            diameter: 7.62,
+            stack_length: 3.65,
         }
     }
 }
@@ -62,8 +62,8 @@ impl Default for PhysicalVariables {
     fn default() -> Self {
         Self {
             fuel_rod_data: FuelRodData {
-                FuelPellet: FuelPellet::default(),
-                Cladding: Cladding::default(),
+                fuel_pellet: FuelPellet::default(),
+                cladding: Cladding::default(),
             },
             distance_between_c_and_f_rods: 1.25,
         }
@@ -150,6 +150,8 @@ impl Default for MainStruct {
         }
     }
 }
+type Item<'a> = (ListItem<'a>, Vec<ListItem<'a>>, bool);
+
 #[derive(Clone, Debug)]
 pub struct Data {
     pub graphs: Vec<Vec<(f64, f64)>>,
@@ -158,7 +160,14 @@ pub struct Data {
     pub neutron_rate: f32,
     pub log: Vec<String>,
     pub left_tab_index: usize,
+    pub left_tab_length: i32,
+    pub checklist_selected: usize,
+    pub checklist_length: usize,
+    pub text_input: bool,
+    pub items: Vec<Item<'static>>,
+    pub selected_item: ListItem<'static>,
 }
+
 impl Default for Data {
     fn default() -> Self {
         Self {
@@ -174,6 +183,40 @@ impl Default for Data {
             neutron_rate: -15.0,
             log: Vec::new(),
             left_tab_index: 0,
+            left_tab_length: 3,
+            checklist_selected: 1,
+            checklist_length: 0,
+            text_input: true,
+            items: vec![
+                (
+                    ListItem::new("Core"),
+                    vec![
+                        ListItem::new("    Reactivity"),
+                        ListItem::new("    Neutron Flux"),
+                        ListItem::new("    Neutron Rate"),
+                    ],
+                    false,
+                ),
+                (
+                    ListItem::new("Turbine"),
+                    vec![
+                        ListItem::new("    Turbine Speed"),
+                        ListItem::new("    Steam Flow Rate"),
+                        ListItem::new("    Steam Pressure"),
+                    ],
+                    false,
+                ),
+                (
+                    ListItem::new("Steam"),
+                    vec![
+                        ListItem::new("    Steam Temperature"),
+                        ListItem::new("    Steam Pressure"),
+                        ListItem::new("    Steam Flow Rate"),
+                    ],
+                    false,
+                ),
+            ],
+            selected_item: ListItem::new("Core"),
         }
     }
 }

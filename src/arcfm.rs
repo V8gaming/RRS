@@ -26,6 +26,7 @@ lazy_static! {
         .build()
         .unwrap();
 }
+pub type SvgPoints = (Vec<(f64, f64)>, String, bool);
 
 pub fn fuel_rod_table(
     width: i32,
@@ -106,8 +107,8 @@ fn neighbor_temp_sum_fn(
     i: i32,
     j: i32,
 ) -> f64 {
-    let MIN = 0.0;
-    let MAX = 100.0;
+    const MIN: f64 = 0.0;
+    const MAX: f64 = 100.0;
     // sum of neighbor temperatures times by 0.05
     //mainstruct.data.log.push(format!("{}, {}",i+1,j+1));
     let mut adjusted_height = height;
@@ -179,8 +180,7 @@ pub fn fuel_rod_svg(
 
     let abs_rod_pos = mainstruct.absorber_rods[pos.0][pos.0].absorber_rod_position / 2.0 + 15.0;
     let absorber_rod = format!(
-        r#"<path d="M 50.000 10.000 L 50.000 {}.000" style="stroke: rgb(0, 0, 0); stroke-width: 1; fill: none;" />"#,
-        abs_rod_pos
+        r#"<path d="M 50.000 10.000 L 50.000 {abs_rod_pos}.000" style="stroke: rgb(0, 0, 0); stroke-width: 1; fill: none;" />"#
     );
     let fuel_rod_container = r#"<rect x="37" y="25" width="25" height="60" style="fill: rgb(255, 0, 0); stroke-width: 3; stroke: rgb(0,0,0);" />"#;
     let mut fuel_rod_svg = String::new();
@@ -191,7 +191,7 @@ pub fn fuel_rod_svg(
     fuel_rod_svg.push_str(footer);
     //save svg to file
 
-    let mut hash_map: HashMap<usize, (Vec<(f64, f64)>, String, bool)> = HashMap::new();
+    let mut hash_map: HashMap<usize, SvgPoints> = HashMap::new();
     render_svg(fuel_rod_svg, ratio, mainstruct, &mut hash_map);
     let mut datasets = Vec::new();
     let re = Regex::new(r"stroke:\s*rgb\((\d+),\s*(\d+),\s*(\d+)\);").unwrap();
@@ -226,7 +226,7 @@ pub fn fuel_rod_svg(
             );
             let dataset = Dataset::default()
                 .data(&i.0)
-                .marker(symbols::Marker::ExtraBlock(symbols::Block::FULL))
+                .marker(symbols::Marker::Blocks(symbols::Blocks::FULL))
                 .graph_type(OtherLine)
                 .style(Style::default().fg(bg_color));
             datasets.push(dataset);
@@ -319,14 +319,14 @@ pub fn fuel_rod_svg(
 }
 
 pub fn temperature(mainstruct: &mut MainStruct, width: i32, height: i32) {
-    let MIN = 0.0;
-    let MAX = 100.0;
+    const MIN: f64 = 0.0;
+    const MAX: f64 = 100.0;
 
     for i in 0..mainstruct.absorber_rods.len() {
         for j in 0..mainstruct.absorber_rods[0].len() {
             let temperature = ((MAX - MIN)
                 * (1.0
-                    - mainstruct.absorber_rods[i as usize][j as usize].fuel_temperature as f64
+                    - mainstruct.absorber_rods[i][j].fuel_temperature as f64
                         / 600.0)
                 + MIN
                 + (neighbor_temp_sum_fn(height, width, mainstruct, i as i32, j as i32) * 0.05))
@@ -335,11 +335,11 @@ pub fn temperature(mainstruct: &mut MainStruct, width: i32, height: i32) {
             let temperature_color;
             if temperature == 100.0 {
                 temperature_color = Color::Reset;
-                mainstruct.absorber_rods[i as usize][j as usize].temperature_color =
+                mainstruct.absorber_rods[i][j].temperature_color =
                     temperature_color;
             } else {
                 temperature_color = Color::Rgb(rgba[0], rgba[1], rgba[2]);
-                mainstruct.absorber_rods[i as usize][j as usize].temperature_color =
+                mainstruct.absorber_rods[i][j].temperature_color =
                     temperature_color;
             }
         }

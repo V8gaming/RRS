@@ -17,7 +17,9 @@ pub fn steam(mainstruct: &mut MainStruct) {
         SUPERHEAT - (SATMAX - SATMIN) * mainstruct.core.steam.steam_pressure / 6.9;
 
     steam_core_turbine(mainstruct);
-    steam_turbine_outside(mainstruct)
+    steam_turbine_outside(mainstruct);
+    deaerator_process(mainstruct);
+    condenser_process(mainstruct);
 
     // flowrate based on diameter of the pipe times drain valve position times velocity
     //mainstruct.core.steam.steam_flow_rate = mainstruct.core.drain_valve * diameter;
@@ -75,4 +77,57 @@ pub fn calculate_flowrate(steam_pressure: f32, location_pressure: f32, drain_val
     let differential_pressure = steam_pressure - (condenser_pressure + location_pressure);
 
     (differential_pressure.abs() / specific_gravity).sqrt() * (drain_valve) / 10000.0
+}
+
+fn deaerator_process(mainstruct: &mut MainStruct) {
+    // Constants
+    const DEGAS_RATE: f32 = 0.1; // Adjust this constant based on the actual degas rate in the system
+    const WATER_LEVEL_MIN: f32 = 0.0;
+    const WATER_LEVEL_MAX: f32 = 100.0;
+    const FEEDWATER_PUMP_COEFFICIENT: f32 = 0.5; // Adjust this constant based on the actual feedwater pump characteristics
+
+    // Steam input
+    let steam_input = mainstruct.turbine.steam_flow_rate * DEGAS_RATE;
+
+    // Update deaerator pressure and temperature based on the steam input
+    mainstruct.deaerator.pressure += steam_input * 0.001; // Update this calculation based on the actual relationship between steam input and pressure
+    mainstruct.deaerator.temperature += steam_input * 0.01; // Update this calculation based on the actual relationship between steam input and temperature
+
+    // Feedwater pump operation
+    let feedwater_flow_rate = mainstruct.deaerator.pressure * FEEDWATER_PUMP_COEFFICIENT;
+
+    // Update deaerator water level based on the steam input and feedwater pump operation
+    mainstruct.deaerator.water_level += steam_input - feedwater_flow_rate;
+
+    // Ensure water level stays within limits
+    if mainstruct.deaerator.water_level < WATER_LEVEL_MIN {
+        mainstruct.deaerator.water_level = WATER_LEVEL_MIN;
+    }
+    if mainstruct.deaerator.water_level > WATER_LEVEL_MAX {
+        mainstruct.deaerator.water_level = WATER_LEVEL_MAX;
+    }
+}
+
+
+fn condenser_process(mainstruct: &mut MainStruct) {
+    // Constants
+    const COOLING_WATER_FLOW_RATE: f32 = 500.0; // Adjust this constant based on the actual cooling water flow rate in the system
+    const HEAT_TRANSFER_COEFFICIENT: f32 = 0.001; // Adjust this constant based on the actual heat transfer coefficient in the system
+    const MIN_CONDENSER_PRESSURE: f32 = 0.001;
+    
+    // Steam input from the turbine
+    let steam_input = mainstruct.turbine.steam_flow_rate;
+
+    // Update condenser pressure based on the steam input
+    mainstruct.condenser.pressure += steam_input * 0.001; // Update this calculation based on the actual relationship between steam input and pressure
+    if mainstruct.condenser.pressure < MIN_CONDENSER_PRESSURE {
+        mainstruct.condenser.pressure = MIN_CONDENSER_PRESSURE;
+    }
+
+    // Update condenser temperature based on the heat transfer between steam and cooling water
+    mainstruct.condenser.temperature += steam_input * HEAT_TRANSFER_COEFFICIENT * (mainstruct.deaerator.temperature - mainstruct.condenser.temperature);
+
+    // Cooling water system
+    mainstruct.condenser.cooling_water_flow_rate = COOLING_WATER_FLOW_RATE;
+    mainstruct.condenser.heat_transfer_coefficient = HEAT_TRANSFER_COEFFICIENT;
 }

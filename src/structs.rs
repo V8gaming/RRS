@@ -139,6 +139,8 @@ pub struct MainStruct {
     pub absorber_rods: Vec<Vec<FuelRod>>,
     pub data: Data,
     pub turbine: Turbine,
+    pub deaerator: Deaerator,
+    pub condenser: Condenser,
 }
 impl Default for MainStruct {
     fn default() -> Self {
@@ -147,6 +149,8 @@ impl Default for MainStruct {
             absorber_rods: vec![vec![FuelRod::default(); 5]; 5],
             data: Data::default(),
             turbine: Turbine::default(),
+            deaerator: Deaerator::default(),
+            condenser: Condenser::default(),
         }
     }
 }
@@ -276,6 +280,42 @@ impl Default for Steam {
             feedwater_flow_rate: 0.0,
             feedwater_temperature: 0.0,
             thermodynamic_cycle: "Rankine".to_string(),
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct Deaerator {
+    pub pressure: f32,
+    pub temperature: f32,
+    pub water_level: f32,
+}
+impl Default for Deaerator {
+    fn default() -> Self {
+        Self {
+            pressure: 0.0,
+            temperature: 0.0,
+            water_level: 0.0,
+        }
+    }
+    
+}
+
+#[derive(Clone, Debug)]
+pub struct Condenser {
+    pub pressure: f32,
+    pub temperature: f32,
+    pub cooling_water_flow_rate: f32,
+    pub heat_transfer_coefficient: f32,
+}
+
+impl Default for Condenser {
+    fn default() -> Self {
+        Self {
+            pressure: 0.0,
+            temperature: 0.0,
+            cooling_water_flow_rate: 0.0,
+            heat_transfer_coefficient: 0.0,
         }
     }
 }

@@ -1,12 +1,10 @@
 use std::{
     collections::HashMap,
-    f64::consts::PI,
     fs::{self, File},
 };
 
 use lazy_static::lazy_static;
 use regex::Regex;
-use std::io::Write;
 
 use crate::{structs::MainStruct, arcfm::SvgPoints};
 lazy_static! {
@@ -402,26 +400,20 @@ fn draw_path(
                     let rx = data[1].parse::<f64>().unwrap() / x_scale;
                     let ry = data[2].parse::<f64>().unwrap() / y_scale;
                     let x_axis_rotation = data[3].parse::<f64>().unwrap();
-                    let large_arc_flag = data[4].parse::<f64>().unwrap();
-                    let sweep_flag = data[5].parse::<f64>().unwrap();
+                    let large_arc_flag = data[4].parse::<bool>().unwrap();
+                    let sweep_flag = data[5].parse::<bool>().unwrap();
                     let end_point_x = data[6].parse::<f64>().unwrap() / x_scale;
                     let end_point_y = data[7].parse::<f64>().unwrap() / y_scale;
-                    for i in 0..100 {
-                        let t = i as f64 / 100.0;
-                        let point = elliptical_arc(
-                            &prev_point,
-                            &(rx, ry),
-                            x_axis_rotation,
-                            large_arc_flag,
-                            sweep_flag,
-                            &(end_point_x, end_point_y),
-                            t,
-                            ratio,
-                            Some(&(*transform_str)),
-                            (x_scale, y_scale),
-                        );
-                        points.push(point);
-                    }
+                    let mut arc_points = elliptical_arc(
+                        prev_point,
+                        (rx, ry),
+                        x_axis_rotation,
+                        large_arc_flag,
+                        sweep_flag,
+                        (end_point_x, end_point_y),
+                        100,
+                    );
+                    points.append(&mut arc_points);
                     prev_point = (end_point_x, end_point_y);
                     prev_command = command;
                 }
@@ -534,7 +526,7 @@ fn quadratic_bezier_curve(
     if transform_str == None {
         (x, y)
     } else {
-        transform(x, y, transform_str.unwrap(), scales)
+        transform(x, y, transform_str.expect("Unable to unwrap transform_str"), scales)
     }
 }
 
@@ -561,57 +553,83 @@ fn cubic_bezier_curve(
     if transform_str == None {
         (x, y)
     } else {
-        transform(x, y, transform_str.unwrap(), scales)
+        transform(x, y, transform_str.expect("Unable to unwrap transform_str"), scales)
     }
 }
 
 fn elliptical_arc(
-    start: &(f64, f64),
-    radii: &(f64, f64),
+    start: (f64, f64),
+    radii: (f64, f64),
     x_axis_rotation: f64,
-    large_arc_flag: f64,
-    sweep_flag: f64,
-    end: &(f64, f64),
-    t: f64,
-    ratio: f64,
-    transform_str: Option<&str>,
-    scales: (f64, f64),
-) -> (f64, f64) {
-    let x1 = start.0;
-    let y1 = 100.0 - start.1;
-    let x2 = end.0;
-    let y2 = 100.0 - end.1;
-    let rx = radii.0;
-    let ry = radii.1;
-    let phi = x_axis_rotation;
-    let fA = large_arc_flag;
-    let fS = sweep_flag;
-    let x1p = (x1 - x2) / 2.0 * phi.cos() + (y1 - y2) / 2.0 * phi.sin();
-    let y1p = -(x1 - x2) / 2.0 * phi.sin() + (y1 - y2) / 2.0 * phi.cos();
-    let rxs = rx.powi(2);
-    let rys = ry.powi(2);
-    let x1ps = x1p.powi(2);
-    let y1ps = y1p.powi(2);
-    let lambda = x1ps / rxs + y1ps / rys;
-    let c = if lambda > 1.0 { lambda.sqrt() } else { 1.0 };
-    let cxp = c * rx * y1p / ry;
-    let cyp = c * -ry * x1p / rx;
-    let cx = cxp * phi.cos() - cyp * phi.sin() + (x1 + x2) / 2.0;
-    let cy = cxp * phi.sin() + cyp * phi.cos() + (y1 + y2) / 2.0;
-    let theta = (x1p - cxp) / rx;
-    let delta = (x1p * -y1p / (rx * ry)).atan2((1.0 - x1ps / rxs - y1ps / rys).sqrt());
-    let t1 = if theta < 0.0 { theta + 2.0 * PI } else { theta };
-    let t2 = if fS == 0.0 { t1 + delta } else { t1 - delta };
-    let t = t1 + (t2 - t1) * t;
-    let x = cx + rx * t.cos();
-    let y = cy + ry * t.sin();
-    // if transform exists use transform, else return x,y
-    if transform_str.is_some() {
-        transform(x, y, transform_str.unwrap(), scales)
-    } else {
-        (x, y)
+    large_arc_flag: bool,
+    sweep_flag: bool,
+    end: (f64, f64),
+    num_points: usize,
+) -> Vec<(f64, f64)> {
+    let (mut rx, mut ry) = radii;
+    let (x1, y1) = start;
+    let (x2, y2) = end;
+
+    let angle_rad = x_axis_rotation.to_radians();
+    let cos_angle = angle_rad.cos();
+    let sin_angle = angle_rad.sin();
+
+    let x1_prime = cos_angle * (x1 - x2) / 2.0 + sin_angle * (y1 - y2) / 2.0;
+    let y1_prime = -sin_angle * (x1 - x2) / 2.0 + cos_angle * (y1 - y2) / 2.0;
+
+    let mut lambda = (x1_prime / rx).powi(2) + (y1_prime / ry).powi(2);
+    if lambda > 1.0 {
+        lambda = lambda.sqrt();
+        rx *= lambda;
+        ry *= lambda;
     }
 
+    let (cx_prime, cy_prime) = {
+        let sign = if large_arc_flag == sweep_flag { -1.0 } else { 1.0 };
+        let factor = (
+            (rx.powi(2) * ry.powi(2) - rx.powi(2) * y1_prime.powi(2) - ry.powi(2) * x1_prime.powi(2))
+                / (rx.powi(2) * y1_prime.powi(2) + ry.powi(2) * x1_prime.powi(2))
+        )
+            .sqrt();
+        (
+            sign * factor * rx * y1_prime / ry,
+            -sign * factor * ry * x1_prime / rx,
+        )
+    };
+
+
+    let (cx, cy) = (
+        cos_angle * cx_prime - sin_angle * cy_prime + (x1 + x2) / 2.0,
+        sin_angle * cx_prime + cos_angle * cy_prime + (y1 + y2) / 2.0,
+    );
+
+    let start_angle = ((y1_prime - cy_prime) / ry).atan2((x1_prime - cx_prime) / rx);
+    let delta_angle = {
+        let delta_angle = ((y1_prime * -1.0 - cy_prime) / ry).atan2((-x1_prime - cx_prime) / rx)
+            - start_angle;
+        let delta_angle = if delta_angle * (sweep_flag as i32 as f64 * 2.0 - 1.0) < 0.0 {
+            delta_angle + 2.0 * std::f64::consts::PI
+        } else {
+            delta_angle
+        };
+        if sweep_flag {
+            delta_angle
+        } else {
+            -delta_angle
+        }
+    };
+
+    let mut points = Vec::with_capacity(num_points);
+    for i in 0..=num_points {
+        let t = i as f64 / num_points as f64;
+        let angle = start_angle + t * delta_angle;
+        let x = cx + rx * angle.cos();
+        let y = cy + ry * angle.sin();
+        let x_rotated = cos_angle * (x - cx) - sin_angle * (y - cy) + cx;
+        let y_rotated = sin_angle * (x - cx) + cos_angle * (y - cy) + cy;
+        points.push((x_rotated, y_rotated));
+    }
+    points
 }
 fn transform(x: f64, y: f64, transform: &str, scales: (f64, f64)) -> (f64, f64) {
     if transform.starts_with("matrix") {
@@ -631,14 +649,14 @@ fn transform(x: f64, y: f64, transform: &str, scales: (f64, f64)) -> (f64, f64) 
     } else if transform.starts_with("translate") {
         let data = transform.strip_prefix("translate(").unwrap();
         let data = data.strip_suffix(')').unwrap();
-        let data = data.split(' ').collect::<Vec<&str>>();
+        let data = data.split(", ").collect::<Vec<&str>>();
         let x = x + data[0].parse::<f64>().unwrap() / scales.0;
         let y = y + data[1].parse::<f64>().unwrap() / scales.1;
         return (x, y);
     } else if transform.starts_with("scale") {
         let data = transform.strip_prefix("scale(").unwrap();
         let data = data.strip_suffix(')').unwrap();
-        let data = data.split(' ').collect::<Vec<&str>>();
+        let data = data.split(", ").collect::<Vec<&str>>();
         let x = x * data[0].parse::<f64>().unwrap();
         let y = y * data[1].parse::<f64>().unwrap();
         return (x, y);
@@ -647,9 +665,13 @@ fn transform(x: f64, y: f64, transform: &str, scales: (f64, f64)) -> (f64, f64) 
         let data = data.strip_suffix(')').unwrap();
         let data = data.split(' ').collect::<Vec<&str>>();
         let angle = data[0].parse::<f64>().unwrap();
-        let x = x * angle.cos() - y * angle.sin();
-        let y = x * angle.sin() + y * angle.cos();
-        return (x, y);
+        let angle_rad = angle.to_radians();
+        let cos_a = angle_rad.cos();
+        let sin_a = angle_rad.sin();
+        let new_x = x * cos_a - y * sin_a;
+        let new_y = x * sin_a + y * cos_a;
+    
+        return (new_x, new_y);
     } else if transform.starts_with("skewX") {
         let data = transform.strip_prefix("skewX(").unwrap();
         let data = data.strip_suffix(')').unwrap();
@@ -666,5 +688,194 @@ fn transform(x: f64, y: f64, transform: &str, scales: (f64, f64)) -> (f64, f64) 
         return (x, y);
     } else {
         return (x, y);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_elliptical_arc() {
+        let start = (300.0, 200.0);
+        let radii = (150.0, 150.0);
+        let x_axis_rotation = 0.0;
+        let large_arc_flag = true;
+        let sweep_flag = false;
+        let end = (150.0, 50.0);
+        let num_points = 10;
+    
+
+        let result = elliptical_arc(
+            start,
+            radii,
+            x_axis_rotation,
+            large_arc_flag,
+            sweep_flag,
+            end,
+            num_points,
+        );
+
+        let expected_result = vec![
+            (300.0, 200.0), 
+            (406.06601717798213, 156.06601717798213), 
+            (450.0, 50.0), 
+            (406.06601717798213, -56.06601717798212), 
+            (300.0, -100.0), 
+            (193.93398282201787, -56.06601717798213), 
+            (150.0, 49.99999999999998), 
+            (193.93398282201787, 156.06601717798213), 
+            (300.0, 200.0), 
+            (406.0660171779821, 156.06601717798213), 
+            (450.0, 50.000000000000036)
+        ];
+        
+        //println!("{:?}", result);
+
+        assert_eq!(result.len(), expected_result.len());
+
+        for (point, expected_point) in result.iter().zip(expected_result.iter()) {
+            assert!((point.0 - expected_point.0).abs() < 1e-6);
+            assert!((point.1 - expected_point.1).abs() < 1e-6);
+        }
+    }
+
+    use super::transform;
+
+    #[test]
+    fn test_transform() {
+        let x: f64 = 100.0;
+        let y: f64 = 200.0;
+        let transform_str: &str = "matrix(3, 1, -1, 3, 30, 40)";
+        let scales: (f64, f64) = (1.0, 1.0);
+
+        let result = transform(x, y, transform_str, scales);
+
+        let expected_x: f64 = 130.0;
+        let expected_y: f64 = 770.0;
+        let tolerance: f64 = 1e-6;
+
+        assert!(
+            (result.0 - expected_x).abs() < tolerance && (result.1 - expected_y).abs() < tolerance,
+            "Expected: ({}, {}), got: ({}, {})",
+            expected_x,
+            expected_y,
+            result.0,
+            result.1
+        );
+    }
+    #[test]
+    fn test_transform_rotate() {
+        let x: f64 = 100.0;
+        let y: f64 = 200.0;
+        let transform_str: &str = "rotate(50)";
+        let scales: (f64, f64) = (1.0, 1.0);
+
+        let result = transform(x, y, transform_str, scales);
+
+        let expected_x: f64 = -88.93012765514167;
+        let expected_y: f64 = 205.1619662492057;    
+
+        let tolerance: f64 = 1e-6;
+
+        assert!(
+            (result.0 - expected_x).abs() < tolerance && (result.1 - expected_y).abs() < tolerance,
+            "Expected: ({}, {}), got: ({}, {})",
+            expected_x,
+            expected_y,
+            result.0,
+            result.1
+        );
+    }
+
+    #[test]
+    fn test_transform_translate() {
+        let x: f64 = 100.0;
+        let y: f64 = 200.0;
+        let transform_str: &str = "translate(-36.0, 45.5)";
+        let scales: (f64, f64) = (1.0, 1.0);
+
+        let result = transform(x, y, transform_str, scales);
+
+        let expected_x: f64 = 64.0;
+        let expected_y: f64 = 245.5;
+        let tolerance: f64 = 1e-6;
+
+        assert!(
+            (result.0 - expected_x).abs() < tolerance && (result.1 - expected_y).abs() < tolerance,
+            "Expected: ({}, {}), got: ({}, {})",
+            expected_x,
+            expected_y,
+            result.0,
+            result.1
+        );
+    }
+
+    #[test]
+    fn test_transform_skew_x() {
+        let x: f64 = 100.0;
+        let y: f64 = 200.0;
+        let transform_str: &str = "skewX(40)";
+        let scales: (f64, f64) = (1.0, 1.0);
+
+        let result = transform(x, y, transform_str, scales);
+
+        let expected_x: f64 = -123.44298618477919;
+        let expected_y: f64 = 200.0;
+        let tolerance: f64 = 1e-6;
+
+        assert!(
+            (result.0 - expected_x).abs() < tolerance && (result.1 - expected_y).abs() < tolerance,
+            "Expected: ({}, {}), got: ({}, {})",
+            expected_x,
+            expected_y,
+            result.0,
+            result.1
+        );
+    }
+    #[test]
+    fn test_transform_skew_y() {
+        let x: f64 = 100.0;
+        let y: f64 = 200.0;
+        let transform_str: &str = "skewY(40)";
+        let scales: (f64, f64) = (1.0, 1.0);
+
+        let result = transform(x, y, transform_str, scales);
+
+        let expected_x: f64 = 100.0;
+        let expected_y: f64 = 88.2785069076104;
+       
+        let tolerance: f64 = 1e-6;
+
+        assert!(
+            (result.0 - expected_x).abs() < tolerance && (result.1 - expected_y).abs() < tolerance,
+            "Expected: ({}, {}), got: ({}, {})",
+            expected_x,
+            expected_y,
+            result.0,
+            result.1
+        );
+    }
+    #[test]
+    fn test_transform_scale() {
+        let x: f64 = 100.0;
+        let y: f64 = 200.0;
+        let transform_str: &str = "scale(1.0, 0.5)";
+        let scales: (f64, f64) = (1.0, 1.0);
+
+        let result = transform(x, y, transform_str, scales);
+
+        let expected_x: f64 = 100.0;
+        let expected_y: f64 = 100.0;
+        let tolerance: f64 = 1e-6;
+
+        assert!(
+            (result.0 - expected_x).abs() < tolerance && (result.1 - expected_y).abs() < tolerance,
+            "Expected: ({}, {}), got: ({}, {})",
+            expected_x,
+            expected_y,
+            result.0,
+            result.1
+        );
     }
 }
